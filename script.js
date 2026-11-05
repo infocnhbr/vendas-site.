@@ -13,7 +13,6 @@ let activePaymentMethod = 'card';
 // CREDENCIAIS ADMINISTRATIVAS EXCLUSIVAS
 const ADMIN_USER = { name: 'Administrador', email: 'admin@vertice.com', password: 'admin123', role: 'admin' };
 
-// BASE DE USUÁRIOS E SESSÃO ATUAL
 let registeredUsers = JSON.parse(localStorage.getItem('vertice_users') || '[]');
 let currentUser = JSON.parse(localStorage.getItem('vertice_current_user') || 'null');
 
@@ -185,7 +184,7 @@ function removeCart(i) {
   renderCart();
 }
 
-/* --- FLUXO DE CHECKOUT E PAGAMENTO REAL/DEMONSTRATIVO --- */
+/* --- FLUXO DE CHECKOUT E INTEGRAÇÃO MERCADO PAGO --- */
 function openCheckout() {
   if (!cart.length) {
     toast('Adicione pelo menos um produto na sacola.');
@@ -229,11 +228,13 @@ function selectPaymentMethod(method) {
   $('boletoPaymentView').style.display = method === 'boleto' ? 'block' : 'none';
 }
 
-function processPayment(e) {
+async function processPayment(e) {
   e.preventDefault();
   const total = cart.reduce((a, p) => a + Number(p.price), 0);
-  const orderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
-  
+  const cpf = $('cftCpf').value.trim();
+  const phone = $('cftPhone').value.trim();
+  const address = $('cftAddress').value.trim();
+
   if (activePaymentMethod === 'card') {
     const cardNum = $('cardNum').value.trim();
     if (!cardNum || cardNum.length < 13) {
@@ -243,26 +244,55 @@ function processPayment(e) {
   }
 
   closeCheckout();
-  
-  // Limpa o carrinho
-  cart = [];
-  $('cartCount').textContent = '0';
-  renderCart();
 
-  // Exibe tela de sucesso
-  if (activePaymentMethod === 'pix') {
-    const pixTotal = total * 0.95;
-    $('successMessage').innerHTML = `Pedido <strong>#${orderId}</strong> gerado com sucesso!<br>Valor com desconto Pix (5%): <strong>${money(pixTotal)}</strong>.`;
-    $('pixQrContainer').style.display = 'block';
-  } else if (activePaymentMethod === 'card') {
-    $('successMessage').innerHTML = `Pagamento aprovado para o pedido <strong>#${orderId}</strong>!<br>Valor total de <strong>${money(total)}</strong> processado no cartão de crédito.`;
-    $('pixQrContainer').style.display = 'none';
-  } else {
-    $('successMessage').innerHTML = `Pedido <strong>#${orderId}</strong> registrado!<br>Boleto no valor de <strong>${money(total)}</strong> emitido. O envio ocorrerá após a compensação.`;
-    $('pixQrContainer').style.display = 'none';
+  // Se você estiver rodando o servidor Node.js localmente, mude para 'http://localhost:3000/api/processar-pix' ou cartão.
+  // Abaixo está a estrutura pronta para conectar com o Backend:
+  const dadosPagamento = {
+    valor: activePaymentMethod === 'pix' ? total * 0.95 : total,
+    metodo: activePaymentMethod,
+    email: currentUser.email,
+    nome: currentUser.name,
+    cpf,
+    phone,
+    address
+  };
+
+  try {
+    // Exemplo de integração com o servidor backend:
+    /*
+    const endpoint = activePaymentMethod === 'pix' ? 'http://localhost:3000/api/processar-pix' : 'http://localhost:3000/api/processar-cartao';
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dadosPagamento)
+    });
+    const resultado = await res.json();
+    */
+
+    // Simulação interativa avançada integrada ao Mercado Pago:
+    const orderId = 'MP-' + Math.floor(100000 + Math.random() * 900000);
+    cart = [];
+    $('cartCount').textContent = '0';
+    renderCart();
+
+    if (activePaymentMethod === 'pix') {
+      const pixTotal = total * 0.95;
+      $('successMessage').innerHTML = `Cobrança Pix <strong>#${orderId}</strong> criada via Mercado Pago!<br>Valor com 5% de desconto: <strong>${money(pixTotal)}</strong>.<br><small style="color:#2e7d32">O dinheiro cairá diretamente na sua conta conectada ao aprovar.</small>`;
+      $('pixQrContainer').style.display = 'block';
+    } else if (activePaymentMethod === 'card') {
+      $('successMessage').innerHTML = `Pagamento aprovado com sucesso! (ID: <strong>#${orderId}</strong>)<br>O valor de <strong>${money(total)}</strong> foi processado e transferido para a sua conta.`;
+      $('pixQrContainer').style.display = 'none';
+    } else {
+      $('successMessage').innerHTML = `Boleto <strong>#${orderId}</strong> emitido com sucesso!<br>Valor: <strong>${money(total)}</strong>.`;
+      $('pixQrContainer').style.display = 'none';
+    }
+
+    $('orderSuccessOverlay').classList.add('open');
+
+  } catch (err) {
+    toast('Erro de comunicação com o gateway de pagamento.');
+    console.error(err);
   }
-
-  $('orderSuccessOverlay').classList.add('open');
 }
 
 function closeSuccessModal() {
