@@ -9,7 +9,7 @@ let products = JSON.parse(localStorage.getItem('vertice_products') || 'null') ||
 let cart = [];
 let settings = JSON.parse(localStorage.getItem('vertice_settings') || '{}');
 
-// CONTA DO ADMINISTRADOR FIXA E SEGURA
+// CREDENCIAIS ADMINISTRATIVAS EXCLUSIVAS
 const ADMIN_USER = { name: 'Administrador', email: 'admin@vertice.com', password: 'admin123', role: 'admin' };
 
 // BASE DE USUÁRIOS E SESSÃO ATUAL
@@ -26,7 +26,7 @@ function toast(s) {
   setTimeout(() => $('toast').classList.remove('show'), 2600);
 }
 
-/* --- AUTENTICAÇÃO E PERFIS --- */
+/* --- SISTEMA DE AUTENTICAÇÃO E PERFIS --- */
 function openAuthModal(mode = 'login') {
   switchAuthTab(mode);
   $('authOverlay').classList.add('open');
@@ -53,7 +53,7 @@ function handleLogin(e) {
   const email = $('loginEmail').value.trim().toLowerCase();
   const password = $('loginPassword').value;
 
-  // Verificação de Administrador
+  // Verificação do Administrador
   if (email === ADMIN_USER.email && password === ADMIN_USER.password) {
     currentUser = ADMIN_USER;
     saveSession();
@@ -63,7 +63,7 @@ function handleLogin(e) {
     return;
   }
 
-  // Verificação de Clientes
+  // Verificação do Cliente
   const user = registeredUsers.find(u => u.email.toLowerCase() === email && u.password === password);
   if (user) {
     currentUser = user;
@@ -87,12 +87,11 @@ function handleRegister(e) {
     return;
   }
 
-  // Novo usuário cadastrado SEMPRE terá a função "cliente"
+  // Novo usuário cadastrado é forçado como "cliente"
   const newUser = { name, email, password, role: 'client' };
   registeredUsers.push(newUser);
   localStorage.setItem('vertice_users', JSON.stringify(registeredUsers));
 
-  // Efetua login automático do novo cliente
   currentUser = newUser;
   saveSession();
   toast('Conta de cliente criada com sucesso!');
@@ -117,7 +116,7 @@ function updateUIForUser() {
     $('userInfoNav').style.display = 'flex';
     $('userGreeting').textContent = `Olá, ${currentUser.name}`;
 
-    // Apenas o Administrador visualiza o botão do painel
+    // Apenas o Admin ganha acesso ao botão do painel
     if (currentUser.role === 'admin') {
       $('adminFab').style.display = 'block';
     } else {
@@ -132,7 +131,7 @@ function updateUIForUser() {
   }
 }
 
-/* --- LOJA E PRODUTOS --- */
+/* --- CARRINHO E VENDAS --- */
 function renderProducts() {
   $('products').innerHTML = products.map(p => `
     <article class="product">
@@ -197,7 +196,7 @@ function checkout() {
   toast('Checkout ilustrativo. Integraremos o pagamento real na publicação.');
 }
 
-/* --- PAINEL ADMINISTRATIVO --- */
+/* --- PAINEL DO ADMINISTRADOR --- */
 function openAdmin() {
   if (!currentUser || currentUser.role !== 'admin') {
     toast('Acesso restrito ao Administrador.');
