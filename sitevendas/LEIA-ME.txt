@@ -1,0 +1,11 @@
+SITEVENDAS — arquivos da loja demonstrativa
+
+Arquivos:
+- index.html: estrutura da página
+- styles.css: estilos e layout
+- script.js: interações e painel demonstrativo
+
+Para visualizar, abra index.html em um navegador.
+Observação: esta é uma prévia demonstrativa. Login, banco de dados,
+armazenamento seguro de imagens e pagamentos reais ainda precisam ser
+implementados antes de publicar uma loja em produção.
