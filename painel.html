@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Painel de acessos • Recomeço</title>
+<style>
+:root{--bg:#0c1714;--line:#294238;--text:#f2f7f3;--muted:#a9bcb1;--green:#8de0ad;--green2:#b8f2ca;--red:#ff9e9e}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 15% 0%,#1c3a2e 0,transparent 38%),var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.wrap{max-width:680px;margin:0 auto}
+.card{background:linear-gradient(145deg,#1a3028,#12221d);border:1px solid var(--line);border-radius:22px;padding:22px;margin-bottom:16px}
+.eyebrow{color:var(--green);font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+h1{font-size:24px;margin:4px 0 8px}h2{font-size:17px;margin:0 0 10px}p{color:var(--muted);margin:0 0 12px}
+label{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
+input{width:100%;min-height:46px;border-radius:12px;border:1px solid var(--line);background:#0d1b16;color:var(--text);font:inherit;padding:0 14px}
+button{border:0;border-radius:12px;padding:10px 16px;min-height:44px;font:inherit;font-weight:800;background:var(--green);color:#10251b;cursor:pointer}
+button.sec{background:#1f372d;color:var(--text);border:1px solid var(--line)}button.ok{background:#1f4a33;color:var(--green2);border:1px solid #2f7a52}button.del{background:#3a1f1f;color:var(--red);border:1px solid #6b3a3a}button:disabled{opacity:.5}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.row>*{flex:1 1 140px}
+.msg{min-height:22px;margin-top:10px;font-weight:700;font-size:14px;color:var(--green2)}.msg.err{color:var(--red)}
+.result{display:none;margin-top:14px;padding:14px;border:1px dashed var(--green);border-radius:14px;background:#0d1b16}
+.code{font-size:26px;font-weight:900;letter-spacing:.1em;color:var(--green2);user-select:all;word-break:break-all}
+.link{font-size:13px;color:var(--muted);word-break:break-all;margin:8px 0;user-select:all}
+.item{background:#0d1b16;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px}
+.item b{color:var(--green2)}.item small{color:var(--muted);display:block}.item .row{margin-top:8px}.item button{min-height:38px;padding:6px 12px}
+</style></head><body><div class="wrap">
+<div class="card"><div class="eyebrow">Recomeço • Administrador</div><h1>Painel de acessos</h1>
+<p>O acesso é criado sozinho para quem abrir o site e fica preso ao primeiro aparelho. É só enviar o endereço do site. Aqui você acompanha, aprova e cancela.</p>
+<label for="api">Endereço do servidor (Worker)</label><input id="api" placeholder="https://recomeco.seunome.workers.dev" autocomplete="off">
+<label for="adm">Sua senha de administrador</label><input id="adm" type="password" autocomplete="off">
+<div class="msg" id="msg" role="status"></div>
+</div>
+<div class="card"><h2>Acessos (<span id="count">0</span>)</h2><div class="row" style="margin:0 0 12px"><button class="sec" id="ref">Atualizar lista</button></div><div id="list"></div></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const get=k=>{try{return localStorage.getItem(k)||''}catch(e){return ''}},set=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+$('api').value=get('rcg_api');
+try{$('adm').value=sessionStorage.getItem('rcg_adm')||''}catch(e){}
+const say=(t,err)=>{$('msg').textContent=t;$('msg').className='msg'+(err?' err':'')};
+const apiUrl=()=>$('api').value.trim().replace(/\/+$/,'');
+const fmtCode=c=>c.match(/.{1,4}/g).join('-');
+async function call(path,body){
+ const api=apiUrl();if(!/^https?:\/\//.test(api))throw new Error('Informe o endereço do servidor.');
+ set('rcg_api',api);try{sessionStorage.setItem('rcg_adm',$('adm').value)}catch(e){}
+ const r=await fetch(api+path,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({admin:$('adm').value,...body})});
+ const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw new Error(j.error||'Erro no servidor.');return j}
+async function load(){
+ try{const j=await call('/list',{});$('count').textContent=j.items.length;const L=$('list');L.innerHTML='';
+  j.items.forEach(x=>{const d=document.createElement('div');d.className='item';
+   const b=document.createElement('b');b.textContent=x.name;
+   const st=x.revoked?'CANCELADO':!x.approved?'AGUARDANDO APROVAÇÃO':x.claimed?'ATIVO desde '+new Date(x.claimedAt).toLocaleDateString('pt-BR'):'ainda não ativado';
+   const s=document.createElement('small');s.textContent=fmtCode(x.code)+' • criado em '+new Date(x.created).toLocaleDateString('pt-BR')+' • '+st;
+   const r=document.createElement('div');r.className='row';
+   if(!x.approved||x.revoked){const o=document.createElement('button');o.className='ok';o.textContent=x.revoked?'Reativar':'Aprovar';o.onclick=async()=>{try{await call('/approve',{code:x.code});say('Acesso liberado para '+x.name+'.');load()}catch(e){say(e.message,1)}};r.append(o)}
+   if(!x.revoked){const v=document.createElement('button');v.className='del';v.textContent='Cancelar acesso';
+    v.onclick=async()=>{if(!confirm('Cancelar o acesso de '+x.name+'?'))return;try{await call('/revoke',{code:x.code});say('Acesso cancelado.');load()}catch(e){say(e.message,1)}};r.append(v)}
+   d.append(b,s,r);L.append(d)})}
+ catch(e){if($('api').value)say(e.message,1)}}
+$('ref').onclick=load;
+if($('api').value&&$('adm').value)load();
+</script></body></html>
