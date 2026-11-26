@@ -400,11 +400,12 @@ input[type=datetime-local]{min-width:0;max-width:100%;min-height:46px;-webkit-ap
 </div>
 
 <div class="setup-overlay gate show" id="gateOverlay"><div class="setup-card">
- <div class="eyebrow">Acesso ao Recomeço</div><h2>Preparando o seu acesso</h2>
- <p>Seu acesso pessoal é criado automaticamente e funciona só neste aparelho. Você não precisa digitar nada.</p>
- <div id="verifyMsg" role="status" style="min-height:22px;margin:12px 0;font-weight:700;color:var(--red);text-align:center;font-size:14px"></div>
- <button class="btn" id="verifyBtn" onclick="verifyId()" style="width:100%;min-height:48px">Tentar de novo</button>
- <p style="font-size:12px;margin:8px 0 0">O acesso não muda ao recarregar a página.</p>
+ <div class="eyebrow">Acesso ao Recomeço</div><h2>Digite seu ID de verificação</h2>
+ <p>Para usar o Recomeço, digite o ID de 8 números que você recebeu. Cada ID vale para um único uso.</p>
+ <div class="field"><label for="verifyId">ID de 8 números</label><input id="verifyId" inputmode="numeric" autocomplete="off" maxlength="9" placeholder="0000 0000" style="width:100%;min-height:50px;font-size:20px;letter-spacing:.14em;text-align:center"></div>
+ <button class="btn" id="verifyBtn" onclick="verifyId()" style="width:100%;min-height:48px;margin-top:6px">Entrar</button>
+ <div id="verifyMsg" role="status" style="min-height:22px;margin-top:12px;font-weight:700;color:var(--red);text-align:center;font-size:14px"></div>
+ <p style="font-size:12px;margin:8px 0 0">Ainda não tem um ID? Peça o seu a quem indicou o Recomeço.</p>
 </div></div>
 
 <div class="setup-overlay" id="setupOverlay"><div class="setup-card">
@@ -1756,45 +1757,27 @@ openC(0);
 })();
 </script>
 <script>
-/* ===== Acesso pessoal criado automaticamente (precisa do servidor worker.js) ===== */
-const RC_API='COLE_AQUI_O_ENDERECO_DO_SERVIDOR'; /* ex.: https://recomeco.seunome.workers.dev */
-const VDEV='rcv_device',VTOK='rcv_token',VOK='rcv_ok';
-let vOk=false,vBusy=false,vDev='';
-function devId(){let d=vDev||lsGet(VDEV);if(!/^[0-9a-f]{32}$/.test(d||'')){const a=new Uint8Array(16);crypto.getRandomValues(a);d=[...a].map(b=>b.toString(16).padStart(2,'0')).join('');lsSet(VDEV,d)}return vDev=d}
-const normCode=t=>String(t||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-function isVerified(){return vOk}
-function applyGate(){const ok=isVerified(),g=$('gateOverlay');if(g)g.classList.toggle('show',!ok);
- /* sem acesso válido, o site inteiro fica oculto e inacessível (teclado e leitores de tela) */
- document.querySelectorAll('.wrap').forEach(w=>{if(ok){w.removeAttribute('inert');w.removeAttribute('aria-hidden');w.style.visibility=''}else{w.setAttribute('inert','');w.setAttribute('aria-hidden','true');w.style.visibility='hidden'}});
- if(!ok){['setupOverlay','tourModal','helpModal','confirmModal','milestoneModal'].forEach(i=>{const e=$(i);if(e)e.classList.remove('show')})}}
-function showSetupIfNeeded(){if(!lsGet('recomeco_setup_done')&&$('setupOverlay')){if($('lastUseDate'))$('lastUseDate').value=toLocalInput(new Date().toISOString());$('setupOverlay').classList.add('show')}}
-async function post(path,body){const r=await fetch(RC_API.replace(/\/+$/,'')+path,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body)});return{r,j:await r.json().catch(()=>({}))}}
-const vMsg=(t,c)=>{const m=$('verifyMsg');m.style.color=c||'var(--red)';m.textContent=t};
-async function claim(code){
- const{r,j}=await post('/claim',{code,device:devId()});
- if(r.ok&&j.ok){lsSet(VTOK,code);lsSet(VOK,'1');vOk=true;vMsg('');applyGate();showSetupIfNeeded()}
- else if(j.pending){lsSet(VTOK,code);lsSet(VOK,'');vMsg('Aguardando aprovação. Seu código: '+code.match(/.{1,4}/g).join('-'),'var(--gold)')}
- else if(r.status===403||r.status===404){lsSet(VTOK,'');lsSet(VOK,'');vMsg(j.error||'Não foi possível entrar.')}
- else throw new Error('servidor')}
-async function run(fn,code){
- if(vBusy)return;vBusy=true;$('verifyBtn').disabled=true;vMsg('Verificando…','var(--muted)');
- try{await fn()}catch(e){
-  /* sem internet: quem já ativou neste aparelho continua entrando */
-  if(code&&lsGet(VOK)==='1'&&lsGet(VTOK)===code){vOk=true;vMsg('');applyGate()}
-  else vMsg('Sem conexão com o servidor. Tente de novo.')}
- vBusy=false;$('verifyBtn').disabled=false}
-/* usa o acesso já salvo neste aparelho; se não houver, cria um sozinho */
-function verifyId(){
- if(RC_API.indexOf('http')!==0){vMsg('Site ainda não configurado: falta o endereço do servidor.');return}
- const tok=lsGet(VTOK);
- if(tok)return run(()=>claim(tok),tok);
- run(async()=>{const{r,j}=await post('/join',{device:devId()});
-  if(r.ok&&j.code)await claim(j.code);else vMsg(j.error||'Não foi possível criar o acesso.')})}
-window.addEventListener('pageshow',applyGate);
+/* ID de verificação (obrigatório): SALT e algoritmo idênticos aos do gerador */
+const VSALT='recomeco-v1-9f3a',VUSED='rcv_used',VOK='rcv_ok';
+function cyrb53(str,seed=0){let h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;for(let i=0,ch;i<str.length;i++){ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return 4294967296*(2097151&h2)+(h1>>>0)}
+const idCheck=p=>String(cyrb53(VSALT+p)%100).padStart(2,'0');
+const idHash=id=>cyrb53('u'+VSALT+id).toString(36);
+let vFails=0,vLock=0;
+function isVerified(){return !!lsJSON(VOK,null)}
+function applyGate(){const g=$('gateOverlay');if(g)g.classList.toggle('show',!isVerified())}
+function verifyId(){const m=$('verifyMsg'),inp=$('verifyId');m.style.color='var(--red)';
+ if(Date.now()<vLock){m.textContent='Muitas tentativas. Aguarde alguns segundos e tente de novo.';return}
+ const id=inp.value.replace(/\D/g,'');
+ if(id.length!==8){m.textContent='O ID precisa ter exatamente 8 números.';return}
+ const bad=()=>{vFails++;if(vFails>=5){vLock=Date.now()+30000;vFails=0;m.textContent='Muitas tentativas. Aguarde 30 segundos.'}};
+ if(idCheck(id.slice(0,6))!==id.slice(6)){m.textContent='ID inválido. Confira os números e tente de novo.';bad();return}
+ const used=lsJSON(VUSED,[]),hs=idHash(id);
+ if(used.includes(hs)){m.textContent='Este ID já foi usado e não vale mais.';return}
+ used.push(hs);lsSet(VUSED,JSON.stringify(used));lsSet(VOK,JSON.stringify({t:Date.now()}));
+ inp.value='';m.textContent='';vFails=0;applyGate();
+ if(!lsGet('recomeco_setup_done')&&$('setupOverlay')){if($('lastUseDate'))$('lastUseDate').value=toLocalInput(new Date().toISOString());$('setupOverlay').classList.add('show')}}
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.activeElement===$('verifyId'))verifyId()});
 applyGate();
-/* ao abrir: entra direto (links antigos com ?t=CODIGO continuam valendo) */
-(function(){let t=null;try{const u=new URL(location.href);t=u.searchParams.get('t');if(t!==null){u.searchParams.delete('t');history.replaceState(null,'',u.pathname+(u.search||'')+u.hash)}}catch(e){}
- const c=normCode(t);if(c&&RC_API.indexOf('http')===0)run(()=>claim(c),c);else verifyId()})();
 </script>
 </body>
 </html>
