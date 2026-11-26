@@ -130,6 +130,34 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
  .game-result{font-size:14px}
 }
 </style>
+<style>
+/* telas sobrepostas (modais) no celular */
+.modal,.setup-overlay{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;place-items:normal;padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
+.modal>.modal-card,.setup-overlay>.setup-card{margin:auto}
+input[type=datetime-local]{min-width:0;max-width:100%;min-height:46px;-webkit-appearance:none;appearance:none}
+.close{min-width:44px;min-height:44px;margin:-10px -10px 0 0}
+@media(max-width:480px){
+ .modal-card,.setup-card{padding:20px 18px;border-radius:18px}
+ .setup-card h2{font-size:22px}
+ .modal-card h2{font-size:20px}
+ .modal .actions{flex-direction:column-reverse;align-items:stretch}
+ .modal .actions .btn{width:100%;min-height:46px}
+ .timer-actions{flex-direction:column;align-items:stretch}
+ .timer-actions .btn,.timer-actions button{width:100%;min-height:46px}
+ .hero-main .btn,.hero-main button{width:100%;min-height:46px}
+ .actions .btn{min-height:44px}
+ .quick button{min-height:84px}
+ .quick{grid-template-columns:1fr 1fr}
+ .hero-main{padding:22px 18px}
+ .panel{padding:16px}
+}
+@media(max-height:480px) and (orientation:landscape){.modal-card,.setup-card{padding:16px}}
+</style>
+<style>
+.grid>*,.stats>*,.hero>*{min-width:0}
+.stat{overflow-wrap:anywhere}
+@media(max-width:380px){.stats{grid-template-columns:1fr 1fr}.stat strong{font-size:22px}.wrap{padding:12px}}
+</style>
 </head>
 <body>
 <div class="wrap">
