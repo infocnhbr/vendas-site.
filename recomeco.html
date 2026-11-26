@@ -158,6 +158,18 @@ input[type=datetime-local]{min-width:0;max-width:100%;min-height:46px;-webkit-ap
 .stat{overflow-wrap:anywhere}
 @media(max-width:380px){.stats{grid-template-columns:1fr 1fr}.stat strong{font-size:22px}.wrap{padding:12px}}
 </style>
+<style>
+.tour-list{display:grid;gap:10px;margin-top:6px}
+.tour-item{display:flex;gap:12px;align-items:flex-start;background:#0d1b16;border:1px solid var(--line);border-radius:14px;padding:12px}
+.tour-item>span{font-size:24px;line-height:1.2}.tour-item b{color:var(--green2)}.tour-item p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+#tourModal .modal-card{max-width:560px}
+/* seção Apoio de verdade importa no celular */
+@media(max-width:760px){
+ .panel.span12 .grid>.stat{grid-column:span 12!important}
+ .panel.span12 .notice{font-size:13.5px;line-height:1.55}
+}
+@media(max-width:480px){.panel.span12 .stat strong{font-size:16px!important}.tour-item{padding:10px}}
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -382,6 +394,18 @@ input[type=datetime-local]{min-width:0;max-width:100%;min-height:46px;-webkit-ap
  <p style="font-size:11px;margin-bottom:0">Se você ainda não sabe o horário exato, escolha uma estimativa. Isso é apenas um acompanhamento pessoal, sem julgamentos.</p>
 </div></div>
 
+<div class="modal" id="tourModal" role="dialog" aria-modal="true" aria-labelledby="tourTitle"><div class="modal-card">
+ <div class="eyebrow">Como o Recomeço funciona</div><h2 id="tourTitle">Seu acompanhamento já começou 🌱</h2>
+ <p style="color:var(--muted)">Um resumo rápido do que você encontra aqui:</p>
+ <div class="tour-list">
+  <div class="tour-item"><span>🎮</span><div><b>Joguinhos e distrações</b><p>Na aba Jogos há várias atividades para ocupar a mente por alguns minutos quando a vontade aparecer.</p></div></div>
+  <div class="tour-item"><span>🆘</span><div><b>Botão de alerta</b><p>Se a vontade de consumir vier forte, toque em “Estou com vontade de consumir” para ver passos seguros e atalhos de ajuda.</p></div></div>
+  <div class="tour-item"><span>🏆</span><div><b>Conquistas dos jogos</b><p>Acertos, vitórias e rodadas concluídas nos jogos somam conquistas e você alcança novas metas.</p></div></div>
+  <div class="tour-item"><span>🌬️</span><div><b>Respiração</b><p>Um exercício guiado, lento e suave, para acalmar o corpo e a mente.</p></div></div>
+  <div class="tour-item"><span>🔄</span><div><b>Se você consumir</b><p>Toque em “Registrei um consumo” para reiniciar o contador e ver o tempo real em que você está sem consumir. O site mostra quantas vezes você reiniciou, sem julgamentos: um deslize não apaga o que você já conquistou.</p></div></div>
+ </div>
+ <div class="actions" style="justify-content:center;margin-top:16px"><button class="btn" onclick="closeModal('tourModal')">Entendi, vamos começar</button></div>
+</div></div>
 <div class="modal" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
  <div class="modal-card"><div class="eyebrow">Confirmação</div><h2 id="confirmTitle">Tem certeza?</h2><p id="confirmMessage">Confirme esta ação.</p>
  <div class="actions" style="justify-content:flex-end;margin-top:18px"><button class="btn ghost" onclick="resolveConfirm(false)">Cancelar</button><button class="btn warning" id="confirmAccept" onclick="resolveConfirm(true)">Sim, continuar</button></div></div>
@@ -438,6 +462,7 @@ function saveInitialStart(){
  data.start=chosen.toISOString();lsSet('recomeco_start',data.start);lsSet('recomeco_setup_done','1');
  $('startDate').value=toLocalInput(data.start).slice(0,10);$('setupOverlay').classList.remove('show');
  renderTimer();renderStats();
+ $('tourModal').classList.add('show');
 }
 
 function elapsedParts(){
@@ -468,7 +493,7 @@ function resolveConfirm(accepted){
  if(accepted&&typeof action==='function')action();
 }
 function recordConsumption(){
- showConfirm('Esta ação registra um consumo e reinicia o contador a partir de agora. Deseja continuar?',
+ showConfirm('Esta ação registra um consumo e reinicia o contador a partir de agora. Se você consumiu, é importante reiniciar para ver o tempo real em que você está sem consumir. Deseja continuar?',
  ()=>{
   const event={date:new Date().toISOString(),number:data.consumptions.length+1};
   data.consumptions.unshift(event);data.start=event.date;
