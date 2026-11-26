@@ -15,7 +15,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:16px;pa
 .actions{display:flex;flex-wrap:wrap;gap:9px}.quick{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.quick button{min-height:94px;text-align:left;background:#0f2019;border:1px solid var(--line);border-radius:15px;color:var(--text);padding:14px}.quick button b{display:block;color:var(--green2);margin-bottom:4px}.quick button span{font-size:12px;color:var(--muted)}
 .field{display:grid;gap:6px;margin:10px 0}.field label{font-size:13px;color:var(--muted)}input,textarea,select{width:100%;border-radius:11px;border:1px solid var(--line);background:#0d1b16;color:var(--text);padding:11px;outline:none}textarea{min-height:85px;resize:vertical}input:focus,textarea:focus,select:focus{border-color:var(--green)}
 .gamebox{background:#0d1b16;border:1px solid var(--line);border-radius:16px;padding:15px}.memory{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.tile{aspect-ratio:1;border-radius:12px;border:1px solid var(--line);background:#1b3429;color:var(--green2);font-size:24px;font-weight:800}.tile.open,.tile.done{background:#294a39;color:white}.tile.done{opacity:.55}
-.breath-circle{width:130px;height:130px;border:3px solid var(--green);border-radius:50%;margin:18px auto;display:grid;place-items:center;color:var(--green2);font-weight:800;box-shadow:0 0 35px #8de0ad20;transition:transform 4s ease}.breath-circle.inhale{transform:scale(1.28)}.breath-circle.exhale{transform:scale(.85)}
+.breath-circle{width:130px;height:130px;border:3px solid var(--green);border-radius:50%;margin:18px auto;display:grid;place-items:center;color:var(--green2);font-weight:800;box-shadow:0 0 35px #8de0ad20;transition:transform 5s ease-in-out}.breath-circle.inhale{transform:scale(1.28)}.breath-circle.exhale{transform:scale(.85)}
 .checklist{display:grid;gap:9px}.checkline{display:flex;align-items:flex-start;gap:10px;padding:10px;background:#0d1b16;border-radius:12px;border:1px solid var(--line)}.checkline input{width:auto;margin-top:4px;accent-color:#8de0ad}.checkline span{font-size:13px}
 .entries{display:grid;gap:8px}.entry{border-left:3px solid var(--green);padding:8px 12px;background:#0d1b16;border-radius:0 10px 10px 0}.entry small{color:var(--muted)}
 .notice{border:1px solid #705b32;background:#2a2417;border-radius:15px;padding:15px;color:#f6e5bd;font-size:13px}.notice strong{color:#ffe4a3}.danger{border-color:#704343;background:#2a1919;color:#ffd0d0}.timer-panel{margin:0 0 18px;padding:25px;background:linear-gradient(135deg,#1c3b2e,#10221b);border:1px solid #47785d;border-radius:22px;box-shadow:var(--shadow);text-align:center}.timer-label{color:var(--green2);font-size:13px;text-transform:uppercase;letter-spacing:1.6px;font-weight:800}.timer{display:flex;justify-content:center;gap:clamp(8px,3vw,25px);flex-wrap:wrap;margin:12px 0}.time-unit strong{display:block;font-size:clamp(34px,7vw,64px);line-height:1.05;letter-spacing:-2px;color:#f4fff6;font-variant-numeric:tabular-nums}.time-unit span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}.timer-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:16px}.btn.warning{background:#56352d;color:#ffe2d8;border:1px solid #8a5548}.consume-log{margin-top:13px;text-align:left;background:#0d1b16;border:1px solid var(--line);padding:12px;border-radius:13px;font-size:12px;color:var(--muted)}.personal-goal{margin-top:12px;padding:14px;border:1px solid #629b75;background:linear-gradient(135deg,#193b2b,#10251c);border-radius:15px}.personal-goal strong{display:block;color:var(--green2);font-size:12px;text-transform:uppercase;letter-spacing:1px}.personal-goal p{margin:5px 0 0;color:#f2fff5;font-size:16px;font-weight:700}.entry{position:relative;padding-right:45px}.delete-entry{position:absolute;right:8px;top:8px;border:1px solid #654343;background:#321e1e;color:#ffc1c1;border-radius:8px;padding:4px 8px;font-size:11px}.goal-row{display:flex;align-items:flex-start;gap:10px;padding:11px;background:#0d1b16;border-radius:12px;border:1px solid var(--line)}.goal-row input{width:auto;margin-top:4px;accent-color:#8de0ad}.goal-body{flex:1;min-width:0}.goal-body strong{display:block;font-size:13px;font-weight:600}.goal-body small{display:block;color:var(--muted);font-size:11px;margin-top:3px}.goal-row.completed .goal-body strong{text-decoration:line-through;color:#9bb6a4}.delete-goal{border:1px solid #654343;background:#321e1e;color:#ffc1c1;border-radius:8px;padding:4px 8px;font-size:11px}.setup-overlay{position:fixed;inset:0;background:#07110deF;display:none;place-items:center;padding:18px;z-index:20}.setup-overlay.show{display:grid}.setup-card{width:min(520px,100%);background:#172a22;border:1px solid #47785d;border-radius:22px;padding:25px;box-shadow:var(--shadow)}.setup-card h2{font-size:25px;margin:8px 0}.setup-card p{color:var(--muted);font-size:14px}.footer{padding:25px 0;color:var(--muted);font-size:12px;text-align:center}
@@ -170,6 +170,18 @@ input[type=datetime-local]{min-width:0;max-width:100%;min-height:46px;-webkit-ap
 }
 @media(max-width:480px){.panel.span12 .stat strong{font-size:16px!important}.tour-item{padding:10px}}
 </style>
+<style>
+.reset-link{background:none;border:0;color:var(--muted);font-size:11px;text-decoration:underline;opacity:.7;margin-top:8px;padding:10px 12px;min-height:40px;cursor:pointer}
+.reset-link:hover{opacity:1;color:var(--text)}
+</style>
+<style>
+.breath-count{font-weight:800;color:var(--green2);font-size:14px;min-height:22px;margin-bottom:10px}
+.breath-steps{list-style:none;padding:0;margin:16px 0 0;display:grid;gap:8px}
+.breath-steps li{background:#0d1b16;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--muted);transition:background .3s,border-color .3s}
+.breath-steps li b{color:var(--green2)}
+.breath-steps li.on{border-color:var(--green);background:#1a3328;color:var(--text)}
+@media(prefers-reduced-motion:reduce){.breath-circle{transition:none}}
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -200,10 +212,10 @@ input[type=datetime-local]{min-width:0;max-width:100%;min-height:46px;-webkit-ap
 <div class="grid">
  <section class="panel span8"><h2>Minha evolução</h2><p class="sub">Registre sua data de início e acompanhe suas metas.</p><div class="stats"><div class="stat"><strong id="days">0</strong><span>dias desde o início</span></div><div class="stat"><strong id="tasksDone">0/4</strong><span>metas de hoje</span></div><div class="stat"><strong id="checkins">0</strong><span>registros emocionais</span></div></div><div class="field"><label for="startDate">Data em que comecei meu compromisso</label><input type="date" id="startDate"><small class="sub">Você pode escolher uma data passada ou começar hoje. O contador é apenas um acompanhamento, não uma avaliação.</small></div><div class="progress"><i id="progressBar"></i></div><div class="sub" id="progressText">Cada escolha saudável conta.</div>
  <div class="personal-goal"><strong>🏆 Conquistas Desbloqueadas</strong><p id="achievementStatus" style="font-size:14px;font-weight:500;margin-top:4px">Total de Conquistas: 0 🏆 (Complete níveis de jogos e vença no Jogo da Velha para ganhar!)</p></div></section>
- <section class="panel span4"><h2>Ajuda para agora</h2><p class="sub">Escolha uma ação simples para mudar o foco.</p><div class="quick"><button onclick="startBreathing()"><b>Respirar</b><span>Exercício guiado</span></button><button onclick="newPrompt()"><b>Mudar o foco</b><span>Uma ideia rápida</span></button><button onclick="openGame()"><b>Jogar</b><span>Treinar a atenção</span></button><button onclick="openJournal()"><b>Desabafar</b><span>Registrar o que sente</span></button></div></section>
+ <section class="panel span4"><h2>Ajuda para agora</h2><p class="sub">Escolha uma ação simples para mudar o foco.</p><div class="quick"><button onclick="goBreathing()"><b>Respirar</b><span>Exercício guiado</span></button><button onclick="newPrompt()"><b>Mudar o foco</b><span>Uma ideia rápida</span></button><button onclick="openGame()"><b>Jogar</b><span>Treinar a atenção</span></button><button onclick="openJournal()"><b>Desabafar</b><span>Registrar o que sente</span></button></div></section>
  <section class="panel span6" id="metas"><h2>Metas de hoje</h2><p class="sub">Pequenas ações possíveis. Marque quando concluir.</p><div class="checklist" id="goalList"></div><div class="field"><label for="customGoal">Adicionar uma meta pessoal</label><input id="customGoal" placeholder="Ex.: ouvir música por 15 minutos"><button class="btn secondary" onclick="saveGoal()">Adicionar meta</button></div></section>
  <section class="panel span6"><h2>Quando a vontade aparecer</h2><p class="sub">Experimente uma estratégia segura enquanto busca apoio.</p><div class="gamebox"><div class="eyebrow">Pausa de alguns minutos</div><p id="prompt" style="font-size:17px;margin:10px 0">Afaste-se do gatilho e, se possível, vá para um lugar onde se sinta seguro.</p><button class="btn secondary" onclick="newPrompt()">Outra sugestão</button></div><div class="notice" style="margin-top:12px">Se puder, ligue ou mande mensagem para alguém de confiança e diga claramente: “Estou com vontade de usar e preciso de companhia agora”. Evite ficar sozinho se não estiver se sentindo seguro.</div></section>
- <section class="panel span6"><h2>Respiração tranquila</h2><p class="sub">Um exercício bem lento e suave: inspire por 6 segundos e solte o ar por 8 segundos. Não prenda a respiração nem force o ritmo. Você pode parar a qualquer momento.</p><div class="breath-circle" id="breathCircle">Pronto?</div><div style="text-align:center"><div id="breathText" class="sub">Inicie quando estiver confortável.</div><button class="btn" id="breathBtn" onclick="startBreathing()">Começar exercício</button></div></section>
+ <section class="panel span6" id="respiracao"><h2>Respiração tranquila</h2><p class="sub">Um exercício suave no ritmo de 6 respirações por minuto, que é o mais estudado para acalmar o corpo: inspire por 5 segundos e solte o ar por 5 segundos. Não prenda a respiração nem force o ritmo. Você pode parar a qualquer momento.</p><div class="breath-circle" id="breathCircle">Pronto?</div><div style="text-align:center"><div id="breathText" class="sub" aria-live="polite">Inicie quando estiver confortável.</div><div id="breathCount" class="breath-count"></div><button class="btn" id="breathBtn" onclick="startBreathing()">Começar exercício</button></div><ol class="breath-steps"><li id="bsIn"><b>1. Inspire por 5 segundos</b> pelo nariz, enchendo a barriga devagar.</li><li id="bsOut"><b>2. Solte o ar por 5 segundos</b> lentamente, sem forçar.</li><li><b>3. Repita</b> por 12 ciclos (cerca de 2 minutos), sem prender o ar. Se sentir tontura, pare e respire normalmente.</li></ol></section>
 
  <section class="panel span6" id="diario"><h2>Como estou me sentindo?</h2><p class="sub">Anotar pode ajudar a perceber situações que despertam vontade de consumir.</p><div class="field"><label for="mood">Meu sentimento agora</label><select id="mood"><option>Tranquilo(a)</option><option>Ansioso(a)</option><option>Estressado(a)</option><option>Triste</option><option>Entediado(a)</option><option>Com vontade de consumir</option><option>Outro</option></select></div><div class="field"><label for="journalText">O que aconteceu? O que poderia me ajudar?</label><textarea id="journalText" placeholder="Escreva sem se julgar..."></textarea></div><button class="btn" onclick="saveEntry()">Salvar registro</button><div class="entries" id="entries" style="margin-top:14px"></div></section>
  <section class="panel span6"><h2>Desafios gentis</h2><p class="sub">Escolha um desafio que faça sentido para hoje.</p><div class="checklist" id="challengeList"><label class="checkline"><input type="checkbox"><span>Passar 10 minutos ao ar livre, se possível.</span></label><label class="checkline"><input type="checkbox"><span>Ouvir três músicas de que gosto.</span></label><label class="checkline"><input type="checkbox"><span>Organizar um pequeno espaço.</span></label><label class="checkline"><input type="checkbox"><span>Fazer uma ligação para alguém querido.</span></label></div></section>
@@ -383,7 +395,7 @@ input[type=datetime-local]{min-width:0;max-width:100%;min-height:46px;-webkit-ap
   <div class="mg-menu" id="cdMenu"></div>
   <div class="game-panel" style="margin-top:14px"><h3 id="cdTitle"></h3><div id="cdStage"></div></div>
 </section>
-<div class="footer">Recomeço • Seus registros ficam salvos neste dispositivo. Se compartilhar o aparelho, proteja sua privacidade.</div>
+<div class="footer">Recomeço • Seus registros ficam salvos neste dispositivo. Se compartilhar o aparelho, proteja sua privacidade.<br><button type="button" class="reset-link" onclick="resetAllData()">Apagar meus dados</button></div>
 </div>
 
 <div class="setup-overlay" id="setupOverlay"><div class="setup-card">
@@ -413,7 +425,7 @@ input[type=datetime-local]{min-width:0;max-width:100%;min-height:46px;-webkit-ap
 
 <div class="modal" id="milestoneModal" role="dialog" aria-modal="true" aria-labelledby="msTitle"><div class="modal-card" style="text-align:center"><div style="font-size:56px;line-height:1.1">🏆</div><div class="eyebrow" style="margin-top:8px">Nova meta alcançada</div><h2 id="msTitle" style="margin:8px 0"></h2><p id="msText" style="color:var(--muted)"></p><div class="personal-goal"><strong>🎯 Próximo objetivo</strong><p id="msNext" style="font-size:15px"></p></div><div class="actions" style="justify-content:center;margin-top:16px"><button class="btn" onclick="closeModal('milestoneModal')">Continuar</button></div></div></div>
 
-<div class="modal" id="helpModal"><div class="modal-card"><button class="close" onclick="closeModal('helpModal')">×</button><div class="eyebrow">Você merece apoio</div><h2>Vamos atravessar este momento com segurança.</h2><p>1. Afaste-se, se puder, de pessoas, lugares ou objetos ligados ao consumo.</p><p>2. Procure alguém de confiança e peça para ficar acompanhado(a).</p><p>3. Escolha uma atividade simples: tomar água, ouvir música, tomar banho ou jogar uma partida.</p><p>4. Entre em contato com um profissional ou serviço especializado para receber orientação.</p><div class="notice danger"><strong>Importante:</strong> se você tem consumo pesado ou diário de álcool, não tente interromper abruptamente sem orientação médica. Sintomas graves ou risco imediato exigem atendimento de emergência.</div><div class="actions" style="margin-top:16px"><button class="btn" onclick="closeModal('helpModal');startBreathing()">Fazer respiração</button><button class="btn secondary" onclick="closeModal('helpModal');openGame()">Jogar agora</button></div></div></div>
+<div class="modal" id="helpModal"><div class="modal-card"><button class="close" onclick="closeModal('helpModal')">×</button><div class="eyebrow">Você merece apoio</div><h2>Vamos atravessar este momento com segurança.</h2><p>1. Afaste-se, se puder, de pessoas, lugares ou objetos ligados ao consumo.</p><p>2. Procure alguém de confiança e peça para ficar acompanhado(a).</p><p>3. Escolha uma atividade simples: tomar água, ouvir música, tomar banho ou jogar uma partida.</p><p>4. Entre em contato com um profissional ou serviço especializado para receber orientação.</p><div class="notice danger"><strong>Importante:</strong> se você tem consumo pesado ou diário de álcool, não tente interromper abruptamente sem orientação médica. Sintomas graves ou risco imediato exigem atendimento de emergência.</div><div class="actions" style="margin-top:16px"><button class="btn" onclick="closeModal('helpModal');goBreathing()">Fazer respiração</button><button class="btn secondary" onclick="closeModal('helpModal');openGame()">Jogar agora</button></div></div></div>
 
 <script>
 const $=id=>document.getElementById(id);
@@ -491,6 +503,10 @@ function showConfirm(message,action,title='Tem certeza?'){
 function resolveConfirm(accepted){
  $('confirmModal').classList.remove('show');const action=confirmAction;confirmAction=null;
  if(accepted&&typeof action==='function')action();
+}
+function resetAllData(){
+ showConfirm('Isso apaga permanentemente, neste aparelho, o contador, as conquistas, o progresso dos jogos, o diário, as metas e a contagem de reinícios. Não dá para desfazer, e você voltará à tela inicial. Deseja mesmo apagar tudo?',
+ ()=>{try{Object.keys(localStorage).filter(k=>k.indexOf('recomeco_')===0).forEach(k=>localStorage.removeItem(k))}catch(e){}location.reload()},'Apagar todos os meus dados?');
 }
 function recordConsumption(){
  showConfirm('Esta ação registra um consumo e reinicia o contador a partir de agora. Se você consumiu, é importante reiniciar para ver o tempo real em que você está sem consumir. Deseja continuar?',
@@ -575,28 +591,40 @@ const prompts=['Saia do ambiente associado ao consumo e vá para um local seguro
 function newPrompt(){let el=$('prompt');if(el)el.textContent=prompts[Math.floor(Math.random()*prompts.length)]}
 
 let breathTimer=null,breathTimeout=null,breathStep=0;
+function goBreathing(){
+ switchTab('home');
+ setTimeout(()=>{const el=$('respiracao');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});if(!breathTimer&&!breathTimeout)startBreathing()},60);
+}
+const BIN=5,BOUT=5,BCYC=12;
 function startBreathing(){
  if(breathTimer||breathTimeout){stopBreathing();return}
  $('breathBtn').textContent='Parar exercício';
  breathStep=0;breathCycle();
 }
+function breathMarks(inhale){const a=$('bsIn'),b=$('bsOut');if(a)a.classList.toggle('on',inhale===true);if(b)b.classList.toggle('on',inhale===false)}
 function stopBreathing(){
  if(breathTimer){clearInterval(breathTimer);breathTimer=null}
  if(breathTimeout){clearTimeout(breathTimeout);breathTimeout=null}
  $('breathCircle').className='breath-circle';
  $('breathCircle').textContent='Pausa';
  $('breathText').textContent='Exercício pausado. Respire normalmente no seu ritmo.';
+ $('breathCount').textContent='';breathMarks(null);
  $('breathBtn').textContent='Começar exercício';
 }
 function breathCycle(){
- const inhale=breathStep%2===0;
- const duration=inhale?6000:8000;
+ const inhale=breathStep%2===0,dur=inhale?BIN:BOUT,cyc=Math.floor(breathStep/2)+1;
  const c=$('breathCircle');if(!c)return;
  c.textContent=inhale?'Inspire':'Solte o ar';
  c.className='breath-circle '+(inhale?'inhale':'exhale');
- $('breathText').textContent=inhale?'Inspire suavemente por 6 segundos.':'Solte o ar lentamente por 8 segundos.';
+ $('breathText').textContent=inhale?'Inspire suavemente pelo nariz e encha a barriga.':'Solte o ar devagar, sem forçar.';
+ breathMarks(inhale);
+ let left=dur;const upd=()=>{$('breathCount').textContent=(inhale?'Inspirando':'Soltando o ar')+' • '+left+'s • Ciclo '+cyc+' de '+BCYC};upd();
+ if(breathTimer)clearInterval(breathTimer);
+ breathTimer=setInterval(()=>{left=Math.max(0,left-1);upd()},1000);
  breathStep++;
- breathTimeout=setTimeout(()=>{breathTimeout=null;if(breathStep>=12){stopBreathing();$('breathCircle').textContent='Concluído';$('breathText').textContent='Fim do exercício. Continue respirando normalmente.';return}breathCycle()},duration);
+ breathTimeout=setTimeout(()=>{breathTimeout=null;clearInterval(breathTimer);breathTimer=null;
+  if(breathStep>=BCYC*2){stopBreathing();$('breathCircle').textContent='Concluído';$('breathText').textContent='Fim do exercício. Continue respirando normalmente.';$('breathCount').textContent='Você completou '+BCYC+' ciclos 🌱';return}
+  breathCycle()},dur*1000);
 }
 
 function saveEntry(){let text=$('journalText').value.trim();if(!text){alert('Escreva algumas palavras antes de salvar.');return}data.entries.unshift({date:new Date().toLocaleString('pt-BR'),mood:$('mood').value,text});lsSet('recomeco_entries',JSON.stringify(data.entries));$('journalText').value='';renderEntries();renderStats()}
