@@ -1,0 +1,20 @@
+{
+  // O "name" precisa ser IGUAL ao nome do projeto/Worker que você criou no Cloudflare
+  "name": "recomeco",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-09-01",
+
+  // Arquivos do site (pasta public). O Worker decide quem pode ver cada um.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "html_handling": "none",
+    "not_found_handling": "none",
+    "run_worker_first": true
+  },
+
+  // Banco de dados (Workers KV). Sem "id": o Wrangler cria sozinho no deploy.
+  "kv_namespaces": [
+    { "binding": "DB" }
+  ]
+}
