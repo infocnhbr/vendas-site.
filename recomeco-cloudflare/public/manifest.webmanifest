@@ -4,7 +4,7 @@
   "short_name": "Recomeçar",
   "description": "Um dia de cada vez. Seu espaço de apoio, sem julgamentos.",
   "lang": "pt-BR",
-  "start_url": "/acesso.html",
+  "start_url": "/recomeco.html",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0c1714",

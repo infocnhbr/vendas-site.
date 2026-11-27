@@ -8,8 +8,6 @@ ESTRUTURA
   (o recomeco.html só é entregue pelo Worker a quem tem sessão válida)
 - public/manifest.webmanifest, public/sw.js e public/icons/   (instalação como aplicativo)
 
-NOVO: botão "Sair da conta" no rodapé do app. Encerra a sessão, esquece o aparelho e volta para a tela "Entrar com CPF" (que não cria conta).
-
 PASSOS
 1. Apague do repositório os arquivos antigos (server.js etc.) e coloque estes, mantendo as pastas.
 2. Confira o "name" em wrangler.jsonc.
@@ -21,8 +19,9 @@ PASSOS
 5. Variáveis (Workers > seu projeto > Settings > Variables and Secrets > Add, tipo Secret):
    - CODIGO_ACESSO  código exigido só para CRIAR uma conta nova (recomendado). Quem já tem conta entra só com o CPF, em qualquer aparelho
    - SEGREDO        texto longo e aleatório que assina as sessões (recomendado; se não definir, é gerado e guardado no banco)
-6. Divulgue o endereço:  https://SEU-PROJETO.workers.dev/acesso.html
-   (é a única tela que cria contas; a tela de bloqueio do recomeco.html só permite entrar com um CPF já cadastrado)
+6. Divulgue o endereço principal:  https://SEU-PROJETO.workers.dev/
+   Ele abre direto o recomeco.html. Quem já usou o aparelho entra sozinho; os demais digitam o CPF (conta já existente).
+   Para CRIAR uma conta nova (exige o código de acesso) use  https://SEU-PROJETO.workers.dev/acesso.html
 
 DADOS DO APP LIGADOS AO CPF
 - Contador, conquistas, registros de consumo, diário, metas e progresso dos jogos ficam salvos no servidor, no CPF.
