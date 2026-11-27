@@ -37,9 +37,9 @@ button:disabled{opacity:.6;cursor:wait}
 
   <div id="form" class="hide">
     <input id="cpf" type="text" inputmode="numeric" placeholder="000.000.000-00" maxlength="14" autocomplete="off">
-    <input id="codigo" class="hide" type="password" placeholder="Código de acesso" autocomplete="off">
-    <button id="go">Cadastrar e entrar</button>
-    <div class="note">Esse cadastro é feito uma única vez neste dispositivo.</div>
+    <input id="codigo" class="hide" type="password" placeholder="Código de acesso (só para criar conta nova)" autocomplete="off">
+    <button id="go">Entrar</button>
+    <div class="note">Você só precisa fazer isso uma vez neste dispositivo.</div>
   </div>
   <div class="err" id="e"></div>
 </div>
@@ -67,10 +67,10 @@ function entrar(){
   erro("");$("b").style.width="100%";
   setTimeout(function(){location.replace("/recomeco.html")},1300);
 }
-function pedirCpf(precisaCodigo){
-  show("load",false);show("form",true);show("codigo",precisaCodigo);
-  $("t").textContent="Primeiro acesso";
-  $("s").textContent="Informe seu CPF para cadastrar este dispositivo. Você só faz isso uma vez.";
+function pedirCpf(){
+  show("load",false);show("form",true);
+  $("t").textContent="Entrar";
+  $("s").textContent="Informe seu CPF para entrar. Se você já tem conta, seus dados aparecem aqui.";
   $("cpf").focus();
 }
 function falhaRede(){show("load",false);$("t").textContent="Sem conexão";$("s").textContent="";erro("Não foi possível falar com o servidor. Tente de novo em instantes.");}
@@ -80,7 +80,10 @@ function cadastrar(){
   var btn=$("go");btn.disabled=true;erro("");
   api("/api/cadastrar",{deviceId:deviceId,cpf:$("cpf").value,codigo:$("codigo").value})
     .then(function(r){btn.disabled=false;
-      if(r.status===200)entrar();else erro(r.dados.erro||"Não foi possível cadastrar.");})
+      if(r.status===200){entrar();return}
+      /* CPF novo: o servidor pede o código de acesso para criar a conta */
+      if(r.dados&&r.dados.precisaCodigo){show("codigo",true);$("codigo").focus()}
+      erro(r.dados.erro||"Não foi possível entrar.");})
     .catch(function(){btn.disabled=false;erro("Falha de conexão com o servidor.");});
 }
 $("go").onclick=cadastrar;
@@ -92,7 +95,7 @@ function falhaServidor(msg){show("load",false);$("t").textContent="Servidor indi
 fetch("/api/config").then(function(r){return r.json()}).then(function(cfg){
   return api("/api/dispositivo",{deviceId:deviceId}).then(function(r){
     if(r.status>=500||(r.status!==200&&!r.dados.cadastrado&&r.dados.erro&&r.status!==400)){falhaServidor(r.dados.erro||("Erro "+r.status+" no servidor."));return;}
-    if(r.status===200&&r.dados.cadastrado)entrar();else pedirCpf(!!cfg.codigo);
+    if(r.status===200&&r.dados.cadastrado)entrar();else pedirCpf();
   });
 }).catch(falhaRede);
 if('serviceWorker' in navigator)window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})});

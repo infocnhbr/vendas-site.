@@ -220,13 +220,20 @@ async function tratar(request, env) {
         if (!limite(ip, 'cad', 10, 60000)) return json({ erro: 'Muitas tentativas. Aguarde um instante.' }, 429);
         const id = String(b.deviceId || '');
         if (id.length < 8 || id.length > 100) return json({ erro: 'Dispositivo inválido.' }, 400);
-        if (codigoAcesso && String(b.codigo || '') !== codigoAcesso) { falhou(ip); return json({ erro: 'Código de acesso incorreto.' }, 403); }
         if (!cpfValido(b.cpf)) return json({ erro: 'CPF inválido. Confira os números.' }, 400);
         const k = await hmac(env, 'cpf', soDig(b.cpf)), dh = await hmac(env, 'dev', id);
         const agora = new Date().toISOString();
-        let u = null;
-        try { u = JSON.parse(await env.DB.get('u:' + k) || 'null'); } catch (e) {}
-        if (!u) u = { cpf: cpfMask(b.cpf), criadoEm: agora, dispositivos: [] };
+        let u = await lerJSON(env, 'u:' + k);
+        /* conta já existe: entra só com o CPF (o código é para criar contas novas, não para entrar) */
+        if (!u) {
+          if (codigoAcesso) {
+            const informado = String(b.codigo || '');
+            if (!informado) return json({ erro: 'Este CPF ainda não tem conta. Para criar uma, informe o código de acesso.', precisaCodigo: true }, 403);
+            if (informado !== codigoAcesso) { falhou(ip); return json({ erro: 'Código de acesso incorreto.', precisaCodigo: true }, 403); }
+          }
+          u = { cpf: cpfMask(b.cpf), criadoEm: agora, dispositivos: [] };
+        }
+        if (!Array.isArray(u.dispositivos)) u.dispositivos = [];
         if (!u.dispositivos.includes(dh)) u.dispositivos.push(dh);
         u.ultimoAcesso = agora;
         await env.DB.put('u:' + k, JSON.stringify(u));
@@ -236,7 +243,7 @@ async function tratar(request, env) {
         return json({ ok: true }, 200, await criarCookie(env, k));
       }
 
-      /* entra só com CPF (quem abriu o recomeco direto) — precisa já estar cadastrado */
+      /* entra só com CPF (quem abriu o recomeco direto) — precisa já ter conta; também lembra este aparelho */
       if (rota === '/api/entrar') {
         const w = travado(ip);
         if (w) return json({ erro: 'Muitas tentativas. Aguarde ' + w + 's.' }, 429);
@@ -247,8 +254,17 @@ async function tratar(request, env) {
         trava.delete(ip);
         const idE = String(b.deviceId || '');
         if (idE.length >= 8 && idE.length <= 100) {
-          const dono = await env.DB.get('d:' + await hmac(env, 'dev', idE));
+          const dh = await hmac(env, 'dev', idE);
+          const dono = await env.DB.get('d:' + dh);
           if (dono && dono !== k) await ligarPerfis(env, dono, k);
+          const u = await lerJSON(env, 'u:' + k);
+          if (u) {
+            if (!Array.isArray(u.dispositivos)) u.dispositivos = [];
+            if (!u.dispositivos.includes(dh)) u.dispositivos.push(dh);
+            u.ultimoAcesso = new Date().toISOString();
+            await env.DB.put('u:' + k, JSON.stringify(u));
+          }
+          await env.DB.put('d:' + dh, k);
         }
         return json({ ok: true }, 200, await criarCookie(env, k));
       }
