@@ -25,10 +25,10 @@ button:disabled{opacity:.6;cursor:wait}
 </style>
 </head>
 <body>
-<div class="c" id="card" style="visibility:hidden">
-  <div class="i">🌱</div>
-  <h1>Recomeçar</h1>
-  <p>Para continuar, entre com o seu CPF.</p>
+<div class="c">
+  <div class="i" id="ic">🔒</div>
+  <h1 id="tt">Acesso não válido</h1>
+  <p id="sub">Para continuar, entre com o seu CPF.</p>
   <input id="cpf" type="text" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" autocomplete="off">
   <button id="go">Entrar com CPF</button>
   <div id="e"></div>
@@ -38,36 +38,21 @@ var $=function(i){return document.getElementById(i)};
 function mascara(v){var c=(v||"").replace(/\D/g,"").slice(0,11);
   return c.replace(/^(\d{3})(\d)/,"$1.$2").replace(/^(\d{3})\.(\d{3})(\d)/,"$1.$2.$3").replace(/\.(\d{3})(\d)/,".$1-$2");}
 $("cpf").addEventListener("input",function(){this.value=mascara(this.value)});
-function novoId(){
-  try{if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();}catch(e){}
-  return "d-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,12)+Math.random().toString(36).slice(2,12);
-}
-var DEV="";
-try{DEV=localStorage.getItem("rc_device_id")||"";if(!DEV){DEV=novoId();localStorage.setItem("rc_device_id",DEV);}}catch(e){DEV=DEV||novoId();}
-function devId(){return DEV}
-function mostrar(){$("card").style.visibility="visible";$("cpf").focus();}
-/* aparelho já conhecido: entra sozinho, sem pedir o CPF de novo (tenta no máximo 1 vez a cada 15s, para não ficar em loop) */
-(function auto(){
-  var agora=Date.now(),ult=0;
-  try{ult=+sessionStorage.getItem("rc_auto")||0;sessionStorage.setItem("rc_auto",String(agora));}catch(e){}
-  if(agora-ult<15000){mostrar();return;}
-  fetch("/api/dispositivo",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({deviceId:DEV}),credentials:"same-origin"})
-    .then(function(r){return r.json().catch(function(){return{}}).then(function(j){return{ok:r.ok,j:j}})})
-    .then(function(r){if(r.ok&&r.j.cadastrado){location.reload();}else mostrar();})
-    .catch(mostrar);
-})();
+function devId(){try{return localStorage.getItem("rc_device_id")||""}catch(e){return ""}}
 function entrar(){
   var btn=$("go");btn.disabled=true;$("e").textContent="";
   fetch("/api/entrar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({cpf:$("cpf").value,deviceId:devId()}),credentials:"same-origin"})
     .then(function(r){return r.json().then(function(j){return{status:r.status,dados:j}})})
     .then(function(r){
-      if(r.status===200){location.reload();return;}
+      if(r.status===200){location.replace("/recomeco.html");return;}
       btn.disabled=false;$("e").textContent=r.dados.erro||(r.status>=500?("Erro "+r.status+" no servidor. Tente de novo em instantes."):"Não foi possível entrar.");
     })
     .catch(function(){btn.disabled=false;$("e").textContent="Falha de conexão com o servidor.";});
 }
 $("go").onclick=entrar;
 $("cpf").addEventListener("keydown",function(e){if(e.key==="Enter")entrar()});
+if(/[?&]saiu=1/.test(location.search)){$("ic").textContent="👋";$("tt").textContent="Você saiu da conta";$("sub").textContent="Para voltar, entre com o seu CPF.";document.title="Entrar — Recomeço";}
+$("cpf").focus();
 </script>
 </body>
 </html>
