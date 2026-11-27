@@ -103,6 +103,16 @@ async function pagina(env, request, nome, status = 200) {
 /* ---------- rotas ---------- */
 export default {
   async fetch(request, env) {
+    try {
+      return await tratar(request, env);
+    } catch (e) {
+      return json({ erro: 'Erro interno no servidor: ' + (e && e.message ? e.message : e) }, 500);
+    }
+  }
+};
+
+async function tratar(request, env) {
+  {
     const url = new URL(request.url);
     const rota = url.pathname;
     const ip = request.headers.get('CF-Connecting-IP') || '?';
@@ -120,6 +130,7 @@ export default {
     }
 
     if (request.method === 'POST' && rota.startsWith('/api/')) {
+      if (!env.DB) return json({ erro: 'O banco de dados (KV "DB") não está conectado ao Worker. Veja o LEIA-ME, passo 4.' }, 500);
       if (!limite(ip, 'api', 40, 60000)) return json({ erro: 'Muitas requisições. Aguarde um instante.' }, 429);
       let b;
       try { b = await request.json(); } catch (e) { return json({ erro: 'Requisição inválida.' }, 400); }
@@ -170,4 +181,4 @@ export default {
 
     return new Response('Não encontrado.', { status: 404, headers: BASE });
   }
-};
+}
