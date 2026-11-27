@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#10251f">
+<title>Acesso — Recomeço</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:radial-gradient(ellipse at 15% 0%,#1c3a2e 0,transparent 40%),#0c1714;color:#f2f7f3;font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;padding:24px;text-align:center}
+.c{width:100%;max-width:400px;background:linear-gradient(145deg,#1a3028,#12221d);border:1px solid #294238;border-radius:22px;padding:34px 28px;box-shadow:0 18px 50px #0003}
+.logo{width:52px;height:52px;margin:0 auto 14px;border-radius:16px;background:linear-gradient(135deg,#9be9b7,#4a9d75);display:grid;place-items:center;color:#10251b;font-size:26px;font-weight:900}
+h1{font-size:22px;margin:0 0 6px}p{color:#a9bcb1;margin:0 0 18px;font-size:14px}
+.bar{height:6px;background:#0d1b16;border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;width:0;background:#8de0ad;transition:width 1.2s ease}
+input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid #294238;background:#0d1b16;color:#f2f7f3;margin-bottom:10px;text-align:center;font-size:16px}
+button{width:100%;border:0;border-radius:12px;padding:12px;background:#8de0ad;color:#10251b;font-weight:800;cursor:pointer;font-size:16px}
+button:disabled{opacity:.6;cursor:wait}
+.err{color:#ff9e9e;font-size:13px;min-height:20px;margin-top:10px}
+.note{color:#a9bcb1;font-size:12px;margin-top:14px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div class="c">
+  <div class="logo">R</div>
+  <h1 id="t">Validando acesso…</h1>
+  <p id="s">Só um instante, estamos liberando o Recomeço.</p>
+  <div id="load" class="bar"><i id="b"></i></div>
+
+  <div id="form" class="hide">
+    <input id="cpf" type="text" inputmode="numeric" placeholder="000.000.000-00" maxlength="14" autocomplete="off">
+    <input id="codigo" class="hide" type="password" placeholder="Código de acesso" autocomplete="off">
+    <button id="go">Cadastrar e entrar</button>
+    <div class="note">Esse cadastro é feito uma única vez neste dispositivo.</div>
+  </div>
+  <div class="err" id="e"></div>
+</div>
+<script>
+var $=function(i){return document.getElementById(i)};
+function show(id,v){$(id).classList[v?"remove":"add"]("hide")}
+function erro(m){$("e").textContent=m||""}
+function mascara(v){var c=(v||"").replace(/\D/g,"").slice(0,11);
+  return c.replace(/^(\d{3})(\d)/,"$1.$2").replace(/^(\d{3})\.(\d{3})(\d)/,"$1.$2.$3").replace(/\.(\d{3})(\d)/,".$1-$2");}
+function novoId(){
+  try{if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();}catch(e){}
+  return "d-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,12)+Math.random().toString(36).slice(2,12);
+}
+var deviceId;
+try{deviceId=localStorage.getItem("rc_device_id");if(!deviceId){deviceId=novoId();localStorage.setItem("rc_device_id",deviceId);}}
+catch(e){deviceId=deviceId||novoId();}
+
+function api(rota,dados){
+  return fetch(rota,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(dados||{}),credentials:"same-origin"})
+    .then(function(r){return r.text().then(function(t){var j={};try{j=JSON.parse(t)}catch(e){}return{status:r.status,dados:j}})});
+}
+function entrar(){
+  show("form",false);show("load",true);
+  $("t").textContent="Validando acesso…";$("s").textContent="Só um instante, estamos liberando o Recomeço.";
+  erro("");$("b").style.width="100%";
+  setTimeout(function(){location.replace("/recomeco.html")},1300);
+}
+function pedirCpf(precisaCodigo){
+  show("load",false);show("form",true);show("codigo",precisaCodigo);
+  $("t").textContent="Primeiro acesso";
+  $("s").textContent="Informe seu CPF para cadastrar este dispositivo. Você só faz isso uma vez.";
+  $("cpf").focus();
+}
+function falhaRede(){show("load",false);$("t").textContent="Sem conexão";$("s").textContent="";erro("Não foi possível falar com o servidor. Tente de novo em instantes.");}
+
+$("cpf").addEventListener("input",function(){this.value=mascara(this.value)});
+function cadastrar(){
+  var btn=$("go");btn.disabled=true;erro("");
+  api("/api/cadastrar",{deviceId:deviceId,cpf:$("cpf").value,codigo:$("codigo").value})
+    .then(function(r){btn.disabled=false;
+      if(r.status===200)entrar();else erro(r.dados.erro||"Não foi possível cadastrar.");})
+    .catch(function(){btn.disabled=false;erro("Falha de conexão com o servidor.");});
+}
+$("go").onclick=cadastrar;
+$("cpf").addEventListener("keydown",function(e){if(e.key==="Enter")cadastrar()});
+$("codigo").addEventListener("keydown",function(e){if(e.key==="Enter")cadastrar()});
+
+/* início: este dispositivo já está no banco? */
+function falhaServidor(msg){show("load",false);$("t").textContent="Servidor indisponível";$("s").textContent="";erro(msg);}
+fetch("/api/config").then(function(r){return r.json()}).then(function(cfg){
+  return api("/api/dispositivo",{deviceId:deviceId}).then(function(r){
+    if(r.status>=500||(r.status!==200&&!r.dados.cadastrado&&r.dados.erro&&r.status!==400)){falhaServidor(r.dados.erro||("Erro "+r.status+" no servidor."));return;}
+    if(r.status===200&&r.dados.cadastrado)entrar();else pedirCpf(!!cfg.codigo);
+  });
+}).catch(falhaRede);
+</script>
+</body>
+</html>
