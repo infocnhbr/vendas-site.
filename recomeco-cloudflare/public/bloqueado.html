@@ -32,9 +32,10 @@ var $=function(i){return document.getElementById(i)};
 function mascara(v){var c=(v||"").replace(/\D/g,"").slice(0,11);
   return c.replace(/^(\d{3})(\d)/,"$1.$2").replace(/^(\d{3})\.(\d{3})(\d)/,"$1.$2.$3").replace(/\.(\d{3})(\d)/,".$1-$2");}
 $("cpf").addEventListener("input",function(){this.value=mascara(this.value)});
+function devId(){try{return localStorage.getItem("rc_device_id")||""}catch(e){return ""}}
 function entrar(){
   var btn=$("go");btn.disabled=true;$("e").textContent="";
-  fetch("/api/entrar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({cpf:$("cpf").value}),credentials:"same-origin"})
+  fetch("/api/entrar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({cpf:$("cpf").value,deviceId:devId()}),credentials:"same-origin"})
     .then(function(r){return r.json().then(function(j){return{status:r.status,dados:j}})})
     .then(function(r){
       if(r.status===200){location.reload();return;}

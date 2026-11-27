@@ -2,6 +2,77 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<script>
+/* Sincronização: os dados do app ficam no servidor, ligados ao CPF, e acompanham a pessoa em qualquer dispositivo.
+   O Worker injeta window.__RC (estado do perfil) antes desta linha. Roda ANTES do app para preparar o localStorage. */
+(function(){
+ var RC=window.__RC;if(!RC)return;
+ var st,S=Storage.prototype,rawSet=S.setItem,rawRem=S.removeItem,rawGet=S.getItem;
+ try{st=window.localStorage;rawGet.call(st,'rc_dono')}catch(e){return}
+ function get(k){try{return rawGet.call(st,k)}catch(e){return null}}
+ function set(k,v){try{rawSet.call(st,k,v)}catch(e){}}
+ function rem(k){try{rawRem.call(st,k)}catch(e){}}
+ function chaves(){var r=[];try{for(var i=0;i<st.length;i++){var k=st.key(i);if(k&&k.indexOf('recomeco_')===0)r.push(k)}}catch(e){}return r}
+ var sujo={};try{sujo=JSON.parse(get('rc_sujo')||'{}')||{}}catch(e){sujo={}}
+ var dono=get('rc_dono'),base=RC.v,timer=null,enviando=false,ultimaPuxada=0;
+ function gravarSujo(){set('rc_sujo',JSON.stringify(sujo))}
+
+ /* 1) estado inicial */
+ if(dono!==RC.pid)sujo={};                       // pendências de outro perfil não valem aqui
+ if(RC.existe){
+  /* o servidor manda; só preserva alterações locais ainda não enviadas deste mesmo perfil */
+  chaves().forEach(function(k){if(!(k in sujo))rem(k)});
+  Object.keys(RC.dados).forEach(function(k){if(!(k in sujo))set(k,RC.dados[k])});
+ }else{
+  /* perfil novo no servidor: se o aparelho tem dados de antes (ou deste perfil), envia; se são de outro perfil, descarta */
+  if(dono&&dono!==RC.pid){chaves().forEach(rem);sujo={}}
+  else chaves().forEach(function(k){sujo[k]=1});
+ }
+ set('rc_dono',RC.pid);gravarSujo();
+
+ /* 2) envio (só as chaves que mudaram) */
+ function agendar(ms){clearTimeout(timer);timer=setTimeout(enviar,ms==null?4000:ms)}
+ function enviar(){
+  var ks=Object.keys(sujo);if(enviando||!ks.length)return;
+  var snap={};ks.forEach(function(k){snap[k]=get(k)});
+  var corpo=JSON.stringify({base:base,mudancas:snap});enviando=true;
+  fetch('/api/salvar',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',keepalive:corpo.length<60000,body:corpo})
+   .then(function(r){return r.json().catch(function(){return{}}).then(function(j){return{s:r.status,j:j}})})
+   .then(function(r){enviando=false;
+    if(r.s===200){base=r.j.v;ks.forEach(function(k){if(get(k)===snap[k])delete sujo[k]});gravarSujo();if(Object.keys(sujo).length)agendar(1000)}
+    else if(r.s===409){chaves().forEach(rem);sujo={};gravarSujo();location.reload()}   // apagado em outro dispositivo
+    else if(r.s!==401)agendar(30000);                                                 // 401: sessão expirou, mantém pendências
+   }).catch(function(){enviando=false;agendar(30000)});
+ }
+
+ /* 3) detecta mudanças feitas pelo app em qualquer chave recomeco_* */
+ function marca(k){if(typeof k==='string'&&k.indexOf('recomeco_')===0){sujo[k]=1;gravarSujo();agendar()}}
+ S.setItem=function(k){rawSet.apply(this,arguments);if(this===st)marca(k)};
+ S.removeItem=function(k){rawRem.apply(this,arguments);if(this===st)marca(k)};
+
+ /* 4) ao sair da aba envia; ao voltar, busca o que outro dispositivo alterou */
+ function puxar(){
+  if(Object.keys(sujo).length){enviar();return}
+  if(enviando||Date.now()-ultimaPuxada<10000)return;ultimaPuxada=Date.now();
+  fetch('/api/estado',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:'{}'})
+   .then(function(r){return r.ok?r.json():null}).then(function(j){
+    if(!j||j.v<=base||Object.keys(sujo).length)return;
+    chaves().forEach(rem);Object.keys(j.dados).forEach(function(k){set(k,j.dados[k])});location.reload();
+   }).catch(function(){});
+ }
+ document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden'){clearTimeout(timer);enviar()}else puxar()});
+ window.addEventListener('pagehide',function(){clearTimeout(timer);enviar()});
+ if(Object.keys(sujo).length)agendar(1500);
+
+ /* 5) apagar tudo: primeiro no servidor (vale para todos os CPFs do perfil), depois neste aparelho */
+ window.rcApagar=function(){
+  clearTimeout(timer);
+  return fetch('/api/apagar',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:'{}'})
+   .then(function(r){if(!r.ok)throw new Error('falha');return r.json()})
+   .then(function(j){chaves().forEach(rem);sujo={};gravarSujo();base=j.v});
+ };
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#10251f">
 <title>Recomeço — Um dia de cada vez</title>
@@ -395,7 +466,7 @@ input[type=datetime-local]{min-width:0;max-width:100%;min-height:46px;-webkit-ap
   <div class="mg-menu" id="cdMenu"></div>
   <div class="game-panel" style="margin-top:14px"><h3 id="cdTitle"></h3><div id="cdStage"></div></div>
 </section>
-<div class="footer">Recomeço • Seus registros ficam salvos neste dispositivo. Se compartilhar o aparelho, proteja sua privacidade.<br><button type="button" class="reset-link" onclick="resetAllData()">Apagar meus dados</button></div>
+<div class="footer">Recomeço • Seus registros ficam salvos na sua conta, ligados ao seu CPF, e acompanham você em qualquer dispositivo. Se compartilhar o aparelho, proteja sua privacidade.<br><button type="button" class="reset-link" onclick="resetAllData()">Apagar meus dados</button></div>
 </div>
 
 <div class="setup-overlay" id="setupOverlay"><div class="setup-card">
@@ -505,8 +576,14 @@ function resolveConfirm(accepted){
  if(accepted&&typeof action==='function')action();
 }
 function resetAllData(){
- showConfirm('Isso apaga permanentemente, neste aparelho, o contador, as conquistas, o progresso dos jogos, o diário, as metas e a contagem de reinícios. Não dá para desfazer, e você voltará à tela inicial. Deseja mesmo apagar tudo?',
- ()=>{try{Object.keys(localStorage).filter(k=>k.indexOf('recomeco_')===0).forEach(k=>localStorage.removeItem(k))}catch(e){}location.reload()},'Apagar todos os meus dados?');
+ showConfirm('Isso apaga permanentemente o contador, as conquistas, o progresso dos jogos, o diário, as metas e a contagem de reinícios — em TODOS os seus dispositivos e em todos os CPFs ligados ao seu perfil. Não dá para desfazer, e você voltará à tela inicial. Deseja mesmo apagar tudo?',
+ ()=>{
+  if(window.rcApagar){
+   window.rcApagar().then(()=>location.reload()).catch(()=>alert('Não foi possível apagar agora. Verifique a conexão e tente de novo.'));
+  }else{
+   try{Object.keys(localStorage).filter(k=>k.indexOf('recomeco_')===0).forEach(k=>localStorage.removeItem(k))}catch(e){}location.reload();
+  }
+ },'Apagar todos os meus dados?');
 }
 function recordConsumption(){
  showConfirm('Esta ação registra um consumo e reinicia o contador a partir de agora. Se você consumiu, é importante reiniciar para ver o tempo real em que você está sem consumir. Deseja continuar?',
