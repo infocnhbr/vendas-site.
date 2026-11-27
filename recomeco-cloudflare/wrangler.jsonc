@@ -15,6 +15,6 @@
 
   // Banco de dados (Workers KV). Sem "id": o Wrangler cria sozinho no deploy.
   "kv_namespaces": [
-    { "binding": "DB" }
+  { "binding": "DB", "id": "b06748d56f694a08b4b4087d56689f33" }
   ]
 }
