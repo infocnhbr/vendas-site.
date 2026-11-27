@@ -1,5 +1,7 @@
 /* Recomeço — acesso por CPF no Cloudflare Workers
-   Banco de dados: Workers KV (binding "DB")  |  Arquivos: pasta public/ (binding "ASSETS") */
+   Banco de dados: Durable Object "Banco" (binding "BANCO", ver src/banco.js)  |  Arquivos: pasta public/ (binding "ASSETS")
+   O KV antigo (binding "DB") é opcional: serve só para importar dados já existentes. */
+export { Banco } from './banco.js';
 
 const SESSAO_S = 12 * 60 * 60;            // sessão de 12 horas
 const enc = new TextEncoder();
@@ -19,10 +21,11 @@ function igual(a, b) {
 async function segredo(env) {
   if (env.SEGREDO) return env.SEGREDO;
   if (segredoCache) return segredoCache;
-  let s = await env.DB.get('segredo');
-  if (!s) {
-    s = hex(crypto.getRandomValues(new Uint8Array(32)));
-    await env.DB.put('segredo', s);
+  let s;
+  if (typeof env.DB.segredo === 'function') s = await env.DB.segredo();
+  else {                                       // só se o banco novo não estiver ligado (KV puro)
+    s = await env.DB.get('segredo');
+    if (!s) { s = hex(crypto.getRandomValues(new Uint8Array(32))); await env.DB.put('segredo', s); }
   }
   segredoCache = s;
   return s;
@@ -114,23 +117,6 @@ async function ligarPerfis(env, kBase, kNovo) {
 
 async function sessaoValida(env, request) { return !!(await contexto(env, request)); }
 
-/* ---------- limite de tentativas (por instância; reforce com Rate Limiting do Cloudflare) ---------- */
-const hits = new Map(), trava = new Map();
-function limite(ip, chave, max, janela) {
-  const k = chave + '|' + ip, agora = Date.now();
-  const a = (hits.get(k) || []).filter(t => agora - t < janela);
-  a.push(agora); hits.set(k, a);
-  if (hits.size > 5000) hits.clear();
-  return a.length <= max;
-}
-function travado(ip) { const t = trava.get(ip); return t && t.ate > Date.now() ? Math.ceil((t.ate - Date.now()) / 1000) : 0; }
-function falhou(ip) {
-  const t = trava.get(ip) || { n: 0, ate: 0 };
-  t.n++;
-  if (t.n >= 5) { t.n = 0; t.ate = Date.now() + 60000; }
-  trava.set(ip, t);
-}
-
 /* ---------- respostas ---------- */
 const BASE = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' };
 function json(obj, status = 200, cookie) {
@@ -162,10 +148,17 @@ async function estatico(env, request, rota) {
   return new Response(r.body, { status: 200, headers: { 'X-Content-Type-Options': 'nosniff', 'Content-Type': tipo, 'Cache-Control': cache } });
 }
 
+/* acesso ao Durable Object (instância única = consistência imediata) */
+function abrirBanco(env) {
+  const stub = env.BANCO.get(env.BANCO.idFromName('principal'));
+  return { get: k => stub.ler(k), put: (k, v) => stub.gravar(k, v), delete: k => stub.apagar(k), segredo: () => stub.segredo() };
+}
+
 /* ---------- rotas ---------- */
 export default {
   async fetch(request, env) {
     try {
+      if (env.BANCO) env = { ...env, DB: abrirBanco(env) };
       return await tratar(request, env);
     } catch (e) {
       return json({ erro: 'Erro interno no servidor: ' + (e && e.message ? e.message : e) }, 500);
@@ -177,7 +170,6 @@ async function tratar(request, env) {
   {
     const url = new URL(request.url);
     const rota = url.pathname;
-    const ip = request.headers.get('CF-Connecting-IP') || '?';
     const codigoAcesso = String(env.CODIGO_ACESSO || '');
 
     if (request.method === 'GET' || request.method === 'HEAD') {
@@ -198,8 +190,7 @@ async function tratar(request, env) {
     }
 
     if (request.method === 'POST' && rota.startsWith('/api/')) {
-      if (!env.DB) return json({ erro: 'O banco de dados (KV "DB") não está conectado ao Worker. Veja o LEIA-ME, passo 4.' }, 500);
-      if (!limite(ip, 'api', 40, 60000)) return json({ erro: 'Muitas requisições. Aguarde um instante.' }, 429);
+      if (!env.DB) return json({ erro: 'O banco de dados (Durable Object "BANCO") não está conectado ao Worker. Confira o wrangler.jsonc e faça o deploy de novo (LEIA-ME, passo 4).' }, 500);
       let b;
       try { b = await request.json(); } catch (e) { return json({ erro: 'Requisição inválida.' }, 400); }
       if (!b || typeof b !== 'object') return json({ erro: 'Requisição inválida.' }, 400);
@@ -215,9 +206,6 @@ async function tratar(request, env) {
 
       /* cadastra o CPF e liga este dispositivo a ele */
       if (rota === '/api/cadastrar') {
-        const w = travado(ip);
-        if (w) return json({ erro: 'Muitas tentativas. Aguarde ' + w + 's.' }, 429);
-        if (!limite(ip, 'cad', 10, 60000)) return json({ erro: 'Muitas tentativas. Aguarde um instante.' }, 429);
         const id = String(b.deviceId || '');
         if (id.length < 8 || id.length > 100) return json({ erro: 'Dispositivo inválido.' }, 400);
         if (!cpfValido(b.cpf)) return json({ erro: 'CPF inválido. Confira os números.' }, 400);
@@ -229,7 +217,7 @@ async function tratar(request, env) {
           if (codigoAcesso) {
             const informado = String(b.codigo || '');
             if (!informado) return json({ erro: 'Este CPF ainda não tem conta. Para criar uma, informe o código de acesso.', precisaCodigo: true }, 403);
-            if (informado !== codigoAcesso) { falhou(ip); return json({ erro: 'Código de acesso incorreto.', precisaCodigo: true }, 403); }
+            if (informado !== codigoAcesso) { return json({ erro: 'Código de acesso incorreto.', precisaCodigo: true }, 403); }
           }
           u = { cpf: cpfMask(b.cpf), criadoEm: agora, dispositivos: [] };
         }
@@ -245,13 +233,9 @@ async function tratar(request, env) {
 
       /* entra só com CPF (quem abriu o recomeco direto) — precisa já ter conta; também lembra este aparelho */
       if (rota === '/api/entrar') {
-        const w = travado(ip);
-        if (w) return json({ erro: 'Muitas tentativas. Aguarde ' + w + 's.' }, 429);
-        if (!limite(ip, 'ent', 10, 60000)) return json({ erro: 'Muitas tentativas. Aguarde um instante.' }, 429);
         if (!cpfValido(b.cpf)) return json({ erro: 'CPF inválido. Confira os números.' }, 400);
         const k = await hmac(env, 'cpf', soDig(b.cpf));
-        if (!(await env.DB.get('u:' + k))) { falhou(ip); return json({ erro: 'CPF não cadastrado. O acesso não está liberado.' }, 404); }
-        trava.delete(ip);
+        if (!(await env.DB.get('u:' + k))) { return json({ erro: 'CPF não cadastrado. O acesso não está liberado.' }, 404); }
         const idE = String(b.deviceId || '');
         if (idE.length >= 8 && idE.length <= 100) {
           const dh = await hmac(env, 'dev', idE);
@@ -292,6 +276,7 @@ async function tratar(request, env) {
             if (v === null) delete dados[c]; else dados[c] = v;
           }
           if (JSON.stringify(dados).length > MAX_TOTAL) return json({ erro: 'Dados grandes demais.' }, 413);
+          if (p.dados !== null && ks.every(c => m[c] === null ? !(c in p.dados) : p.dados[c] === m[c])) return json({ ok: true, v: p.v });   // nada mudou
           const novo = { ...p, dados, v: p.v + 1, atualizadoEm: new Date().toISOString() };
           await env.DB.put('p:' + pid, JSON.stringify(novo));
           return json({ ok: true, v: novo.v });

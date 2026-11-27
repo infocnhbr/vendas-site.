@@ -45,7 +45,7 @@ function entrar(){
     .then(function(r){return r.json().then(function(j){return{status:r.status,dados:j}})})
     .then(function(r){
       if(r.status===200){location.reload();return;}
-      btn.disabled=false;$("e").textContent=r.dados.erro||"Não foi possível entrar.";
+      btn.disabled=false;$("e").textContent=r.dados.erro||(r.status>=500?("Erro "+r.status+" no servidor. Tente de novo em instantes."):"Não foi possível entrar.");
     })
     .catch(function(){btn.disabled=false;$("e").textContent="Falha de conexão com o servidor.";});
 }

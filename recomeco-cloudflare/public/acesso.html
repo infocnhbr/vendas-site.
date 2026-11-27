@@ -83,7 +83,7 @@ function cadastrar(){
       if(r.status===200){entrar();return}
       /* CPF novo: o servidor pede o código de acesso para criar a conta */
       if(r.dados&&r.dados.precisaCodigo){show("codigo",true);$("codigo").focus()}
-      erro(r.dados.erro||"Não foi possível entrar.");})
+      erro(r.dados.erro||(r.status>=500?("Erro "+r.status+" no servidor. Tente de novo em instantes."):"Não foi possível entrar."));})
     .catch(function(){btn.disabled=false;erro("Falha de conexão com o servidor.");});
 }
 $("go").onclick=cadastrar;

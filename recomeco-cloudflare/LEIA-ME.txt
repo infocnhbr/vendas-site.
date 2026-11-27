@@ -1,0 +1,58 @@
+RECOMEÇO NO CLOUDFLARE (Workers + Durable Object como banco)
+
+ESTRUTURA
+- wrangler.jsonc   configuração (o "name" deve ser igual ao nome do seu projeto no Cloudflare)
+- src/worker.js    servidor de acesso (cadastro e verificação de CPF)
+- src/banco.js     banco de dados (Durable Object com SQLite)
+- public/          acesso.html, bloqueado.html e recomeco.html
+  (o recomeco.html só é entregue pelo Worker a quem tem sessão válida)
+- public/manifest.webmanifest, public/sw.js e public/icons/   (instalação como aplicativo)
+
+PASSOS
+1. Apague do repositório os arquivos antigos (server.js etc.) e coloque estes, mantendo as pastas.
+2. Confira o "name" em wrangler.jsonc.
+3. No Cloudflare: o comando de deploy deve ser   npx wrangler deploy   (build command pode ficar vazio).
+4. O banco (Durable Object "Banco", binding "BANCO") é criado sozinho no deploy; não precisa criar nada à mão.
+   Funciona no plano gratuito. O wrangler.jsonc já traz o bloco "durable_objects" e "migrations": não apague.
+   O KV antigo (binding "DB") continua no wrangler.jsonc só para importar automaticamente as contas e os dados que
+   já existiam (copiados na primeira leitura). Se você nunca usou o KV antigo, pode remover o bloco "kv_namespaces".
+5. Variáveis (Workers > seu projeto > Settings > Variables and Secrets > Add, tipo Secret):
+   - CODIGO_ACESSO  código exigido só para CRIAR uma conta nova (recomendado). Quem já tem conta entra só com o CPF, em qualquer aparelho
+   - SEGREDO        texto longo e aleatório que assina as sessões (recomendado; se não definir, é gerado e guardado no banco)
+6. Divulgue o endereço:  https://SEU-PROJETO.workers.dev/acesso.html
+   (é a única tela que cria contas; a tela de bloqueio do recomeco.html só permite entrar com um CPF já cadastrado)
+
+DADOS DO APP LIGADOS AO CPF
+- Contador, conquistas, registros de consumo, diário, metas e progresso dos jogos ficam salvos no servidor, no CPF.
+  Quem entrar com o CPF em outro aparelho recebe tudo isso, em vez de um perfil zerado.
+- O app grava no servidor poucos segundos após cada alteração (e ao sair da aba). Ao voltar para a aba,
+  se outro aparelho alterou algo, a página recarrega com os dados novos.
+- CPFs usados no MESMO aparelho (cadastro, ou "Entrar com CPF" na tela de bloqueio) são ligados num único perfil
+  e passam a compartilhar os mesmos dados. "Apagar meus dados" apaga para todos os CPFs do perfil, em todos os
+  aparelhos. O acesso por CPF continua valendo; só os dados são zerados.
+- Se dois perfis com dados forem ligados, prevalece o do CPF/aparelho que já existia.
+- Aparelhos que já tinham dados salvos antes desta atualização enviam esses dados para o CPF no primeiro acesso.
+
+INSTALAR COMO APLICATIVO (nome "Recomeçar", ícone de brotinho verde)
+- Na tela inicial do app aparece o aviso "Instale o Recomeçar no seu celular" (pode ser fechado) e, no rodapé,
+  o link "Instalar aplicativo" (some sozinho quando o app já está instalado).
+- Android (Chrome): o botão abre o pedido de instalação do sistema. Se o navegador não oferecer, mostra o passo a passo do menu.
+- iPhone/iPad: o iOS não permite instalar por botão; o app mostra o passo a passo (Safari > Compartilhar > Adicionar à Tela de Início).
+- No iPhone o app instalado tem armazenamento separado do Safari: na primeira abertura ele pede o CPF (e o código de
+  acesso, se houver) uma vez; depois os dados do CPF aparecem normalmente.
+- O service worker (sw.js) NÃO guarda nada em cache, para não reter dados pessoais. Sem internet, o app mostra um aviso.
+- Para trocar o ícone: substitua os PNGs em public/icons/ (icon-192, icon-512, icon-maskable-512 e apple-touch-icon 180x180).
+- A instalação exige HTTPS (o endereço workers.dev já é HTTPS).
+
+BANCO DE DADOS
+- Durable Object (SQLite): consistência imediata (uma conta criada num aparelho vale na hora nos outros) e sem o limite
+  de ~1.000 gravações/dia do KV gratuito. Chaves "u:..." (usuário: CPF mascarado, dispositivos, datas, perfil),
+  "d:..." (dispositivo -> usuário) e "p:..." (perfil: lista de CPFs, versão e os dados do app).
+- O CPF completo não é guardado, só um código irreversível (HMAC) e a versão mascarada.
+- Para apagar os dados de uma pessoa: use o botão "Apagar meus dados" no app.
+- Para remover o acesso de alguém: hoje não há tela de administração; peça e eu adiciono (ex.: endpoint protegido).
+
+OBSERVAÇÕES
+- NÃO há limite de tentativas: nem bloqueio de 60s, nem limite por minuto. Como o acesso é só por CPF, se quiser
+  proteção contra alguém testar CPFs em massa, crie uma regra de Rate Limiting no Cloudflare para /api/* (opcional).
+- LGPD: CPF é dado pessoal. Informe a finalidade e proteja o acesso à sua conta Cloudflare.
