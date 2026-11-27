@@ -2,6 +2,14 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Recomeçar">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="application-name" content="Recomeçar">
 <script>
 /* Sincronização: os dados do app ficam no servidor, ligados ao CPF, e acompanham a pessoa em qualquer dispositivo.
    O Worker injeta window.__RC (estado do perfil) antes desta linha. Roda ANTES do app para preparar o localStorage. */
@@ -76,6 +84,32 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#10251f">
 <title>Recomeço — Um dia de cada vez</title>
+<script>
+/* Instalar como aplicativo (PWA): Android/Chrome abre o pedido do sistema; iPhone mostra o passo a passo */
+(function(){
+ var ev=null,ua=navigator.userAgent||'';
+ var ios=/iPad|iPhone|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+ var android=/Android/i.test(ua);
+ function instalado(){try{return (window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true}catch(e){return false}}
+ function $i(id){return document.getElementById(id)}
+ function fechado(){try{return localStorage.getItem('rc_instalar_off')==='1'}catch(e){return false}}
+ function atualizar(){
+  var inst=instalado(),bar=$i('installBar'),lk=$i('installLink');
+  if(bar)bar.hidden=inst||fechado();
+  if(lk)lk.hidden=inst;
+ }
+ window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();ev=e;atualizar()});
+ window.addEventListener('appinstalled',function(){ev=null;try{localStorage.setItem('rc_instalar_off','1')}catch(e){}atualizar();var m=$i('installModal');if(m)m.classList.remove('show')});
+ document.addEventListener('DOMContentLoaded',atualizar);
+ window.rcFecharAviso=function(){try{localStorage.setItem('rc_instalar_off','1')}catch(e){}atualizar()};
+ window.rcInstalar=function(){
+  if(ev){var e=ev;ev=null;e.prompt();if(e.userChoice)e.userChoice.then(function(){atualizar()});return}
+  $i('instIos').hidden=!ios;$i('instAndroid').hidden=ios||!android;$i('instOutro').hidden=ios||android;
+  $i('installModal').classList.add('show');
+ };
+ if('serviceWorker' in navigator)window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})});
+})();
+</script>
 <style>
 :root{--bg:#0c1714;--panel:#14251f;--panel2:#1a3028;--line:#294238;--text:#f2f7f3;--muted:#a9bcb1;--green:#8de0ad;--green2:#b8f2ca;--gold:#f2cf83;--red:#ff9e9e;--shadow:0 18px 50px #0003}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 15% 0%,#1c3a2e 0,transparent 38%),var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
@@ -171,6 +205,11 @@ header{display:flex;align-items:center;justify-content:space-between;gap:16px;pa
 .sil-btn.primary{background:#dcecfb;border-color:#c5dcf2;color:#25517a}
 .sil-ph{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
 .sil-ph .sil-btn:disabled{opacity:.4}
+.install-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:linear-gradient(145deg,#1a3028,#12221d);border:1px solid var(--line);border-radius:16px;padding:12px 16px;margin:0 0 16px}
+.install-bar[hidden]{display:none}.install-bar img{width:42px;height:42px;border-radius:11px;flex:none}.install-bar .it{flex:1;min-width:180px;line-height:1.35}.install-bar .it b{display:block}.install-bar .it span{color:var(--muted);font-size:13px}
+.install-bar .x{background:none;border:0;color:var(--muted);font-size:22px;line-height:1;padding:6px 10px;min-height:40px}
+.inst-steps{margin:12px 0 0;padding-left:22px;color:var(--text)}.inst-steps li{margin:8px 0}.inst-steps small{display:block;color:var(--muted)}
+.inst-ico{display:inline-block;border:1px solid var(--line);background:#0d1b16;border-radius:7px;padding:0 7px;font-weight:700}
 </style>
 <style>
 .cards{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:8px 0;min-height:66px;align-items:center}
@@ -261,6 +300,12 @@ input[type=datetime-local]{min-width:0;max-width:100%;min-height:46px;-webkit-ap
  <button class="tab-btn active" id="homeTabBtn" onclick="switchTab('home')">Início</button>
  <button class="tab-btn" id="gamesTabBtn" onclick="switchTab('games')">🎮 Jogos</button>
 </nav>
+<div class="install-bar" id="installBar" hidden>
+ <img src="/icons/icon-192.png" alt="" width="42" height="42">
+ <div class="it"><b>Instale o Recomeçar no seu celular</b><span>Fica na tela inicial, como um aplicativo, e abre em tela cheia.</span></div>
+ <button class="btn" type="button" onclick="rcInstalar()">Instalar</button>
+ <button class="x" type="button" aria-label="Fechar aviso" onclick="rcFecharAviso()">×</button>
+</div>
 <main id="homeTab" class="tab-page active">
 <section class="timer-panel">
  <div class="timer-label">Tempo sem consumir</div>
@@ -466,7 +511,7 @@ input[type=datetime-local]{min-width:0;max-width:100%;min-height:46px;-webkit-ap
   <div class="mg-menu" id="cdMenu"></div>
   <div class="game-panel" style="margin-top:14px"><h3 id="cdTitle"></h3><div id="cdStage"></div></div>
 </section>
-<div class="footer">Recomeço • Seus registros ficam salvos na sua conta, ligados ao seu CPF, e acompanham você em qualquer dispositivo. Se compartilhar o aparelho, proteja sua privacidade.<br><button type="button" class="reset-link" onclick="resetAllData()">Apagar meus dados</button></div>
+<div class="footer">Recomeço • Seus registros ficam salvos na sua conta, ligados ao seu CPF, e acompanham você em qualquer dispositivo. Se compartilhar o aparelho, proteja sua privacidade.<br><button type="button" class="reset-link" id="installLink" onclick="rcInstalar()" hidden>📲 Instalar aplicativo</button> <button type="button" class="reset-link" onclick="resetAllData()">Apagar meus dados</button></div>
 </div>
 
 <div class="setup-overlay" id="setupOverlay"><div class="setup-card">
@@ -489,6 +534,37 @@ input[type=datetime-local]{min-width:0;max-width:100%;min-height:46px;-webkit-ap
  </div>
  <div class="actions" style="justify-content:center;margin-top:16px"><button class="btn" onclick="closeModal('tourModal')">Entendi, vamos começar</button></div>
 </div></div>
+<div class="modal" id="installModal" role="dialog" aria-modal="true" aria-labelledby="instTitle"><div class="modal-card">
+ <button class="close" onclick="closeModal('installModal')" aria-label="Fechar">×</button>
+ <div class="eyebrow">Instalar aplicativo</div><h2 id="instTitle">Recomeçar na sua tela inicial</h2>
+ <div id="instIos" hidden>
+  <p style="color:var(--muted);margin:0">No iPhone ou iPad a instalação é feita pelo menu do navegador:</p>
+  <ol class="inst-steps">
+   <li>Abra este site no <b>Safari</b>.</li>
+   <li>Toque no botão <span class="inst-ico">⬆︎ Compartilhar</span> <small>(quadrado com uma seta para cima, na barra de baixo; no iPad fica no alto)</small></li>
+   <li>Role e toque em <b>Adicionar à Tela de Início</b>.</li>
+   <li>Confirme em <b>Adicionar</b>. O ícone <b>Recomeçar</b> aparece na tela inicial.</li>
+  </ol>
+ </div>
+ <div id="instAndroid" hidden>
+  <p style="color:var(--muted);margin:0">Se o botão de instalar não abriu sozinho, use o menu do navegador:</p>
+  <ol class="inst-steps">
+   <li>Toque no menu <span class="inst-ico">⋮</span> do navegador (canto superior).</li>
+   <li>Toque em <b>Instalar aplicativo</b> <small>(em alguns celulares aparece como “Adicionar à tela inicial”)</small></li>
+   <li>Confirme em <b>Instalar</b>. O ícone <b>Recomeçar</b> aparece na tela inicial.</li>
+  </ol>
+ </div>
+ <div id="instOutro" hidden>
+  <p style="color:var(--muted);margin:0">Abra este endereço no celular e use o menu do navegador:</p>
+  <ol class="inst-steps">
+   <li><b>Android (Chrome):</b> menu <span class="inst-ico">⋮</span> → <b>Instalar aplicativo</b>.</li>
+   <li><b>iPhone (Safari):</b> <span class="inst-ico">⬆︎ Compartilhar</span> → <b>Adicionar à Tela de Início</b>.</li>
+   <li>No computador (Chrome ou Edge): ícone de instalar na barra de endereço.</li>
+  </ol>
+ </div>
+ <div class="actions" style="justify-content:flex-end;margin-top:18px"><button class="btn" onclick="closeModal('installModal')">Entendi</button></div>
+</div></div>
+
 <div class="modal" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
  <div class="modal-card"><div class="eyebrow">Confirmação</div><h2 id="confirmTitle">Tem certeza?</h2><p id="confirmMessage">Confirme esta ação.</p>
  <div class="actions" style="justify-content:flex-end;margin-top:18px"><button class="btn ghost" onclick="resolveConfirm(false)">Cancelar</button><button class="btn warning" id="confirmAccept" onclick="resolveConfirm(true)">Sim, continuar</button></div></div>

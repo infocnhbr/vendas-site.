@@ -146,6 +146,22 @@ async function pagina(env, request, nome, status = 200, inserir = '') {
   return new Response((await r.text()).replace('<head>', '<head>' + inserir), { status, headers: h });
 }
 
+/* arquivos públicos para instalar o site como aplicativo (manifesto, service worker e ícones) */
+const ESTATICOS = {
+  '/manifest.webmanifest': ['application/manifest+json; charset=utf-8', 'no-cache'],
+  '/sw.js': ['text/javascript; charset=utf-8', 'no-cache'],
+  '/icons/icon-192.png': ['image/png', 'public, max-age=86400'],
+  '/icons/icon-512.png': ['image/png', 'public, max-age=86400'],
+  '/icons/icon-maskable-512.png': ['image/png', 'public, max-age=86400'],
+  '/icons/apple-touch-icon.png': ['image/png', 'public, max-age=86400']
+};
+async function estatico(env, request, rota) {
+  const r = await env.ASSETS.fetch(new Request(new URL(rota, request.url)));
+  if (!r.ok) return new Response('Não encontrado.', { status: 404, headers: BASE });
+  const [tipo, cache] = ESTATICOS[rota];
+  return new Response(r.body, { status: 200, headers: { 'X-Content-Type-Options': 'nosniff', 'Content-Type': tipo, 'Cache-Control': cache } });
+}
+
 /* ---------- rotas ---------- */
 export default {
   async fetch(request, env) {
@@ -165,6 +181,7 @@ async function tratar(request, env) {
     const codigoAcesso = String(env.CODIGO_ACESSO || '');
 
     if (request.method === 'GET' || request.method === 'HEAD') {
+      if (ESTATICOS[rota]) return estatico(env, request, rota);
       if (rota === '/') return Response.redirect(new URL('/acesso.html', request.url).toString(), 302);
       if (rota === '/acesso.html') return pagina(env, request, 'acesso.html');
       if (rota === '/recomeco.html') {
