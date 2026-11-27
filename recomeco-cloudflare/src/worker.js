@@ -195,6 +195,24 @@ async function tratar(request, env) {
       try { b = await request.json(); } catch (e) { return json({ erro: 'Requisição inválida.' }, 400); }
       if (!b || typeof b !== 'object') return json({ erro: 'Requisição inválida.' }, 400);
 
+      /* sair da conta: esquece este aparelho e apaga a sessão (volta para a tela de entrar com CPF) */
+      if (rota === '/api/sair') {
+        const id = String(b.deviceId || '');
+        if (id.length >= 8 && id.length <= 100) {
+          const dh = await hmac(env, 'dev', id);
+          const dono = await env.DB.get('d:' + dh);
+          if (dono) {
+            const u = await lerJSON(env, 'u:' + dono);
+            if (u && Array.isArray(u.dispositivos)) {
+              u.dispositivos = u.dispositivos.filter(x => x !== dh);
+              await env.DB.put('u:' + dono, JSON.stringify(u));
+            }
+            await env.DB.delete('d:' + dh);
+          }
+        }
+        return json({ ok: true }, 200, 'rc_sessao=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0');
+      }
+
       /* o dispositivo já está cadastrado? se sim, libera sem pedir CPF */
       if (rota === '/api/dispositivo') {
         const id = String(b.deviceId || '');

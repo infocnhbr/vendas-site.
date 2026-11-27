@@ -72,6 +72,20 @@
  window.addEventListener('pagehide',function(){clearTimeout(timer);enviar()});
  if(Object.keys(sujo).length)agendar(1500);
 
+
+ /* 6) sair da conta: envia o que falta, encerra a sessão no servidor e limpa os dados deste aparelho */
+ window.rcSair=function(){
+  clearTimeout(timer);
+  var ks=Object.keys(sujo),snap={};ks.forEach(function(k){snap[k]=get(k)});
+  var envio=ks.length?fetch('/api/salvar',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({base:base,mudancas:snap})}).catch(function(){}):Promise.resolve();
+  return envio.then(function(){
+   var idv='';try{idv=localStorage.getItem('rc_device_id')||''}catch(e){}
+   return fetch('/api/sair',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({deviceId:idv})});
+  }).then(function(r){if(!r.ok)throw new Error('falha');
+   chaves().forEach(rem);sujo={};gravarSujo();rem('rc_dono');rem('rc_sujo');
+  });
+ };
+
  /* 5) apagar tudo: primeiro no servidor (vale para todos os CPFs do perfil), depois neste aparelho */
  window.rcApagar=function(){
   clearTimeout(timer);
@@ -511,7 +525,7 @@ input[type=datetime-local]{min-width:0;max-width:100%;min-height:46px;-webkit-ap
   <div class="mg-menu" id="cdMenu"></div>
   <div class="game-panel" style="margin-top:14px"><h3 id="cdTitle"></h3><div id="cdStage"></div></div>
 </section>
-<div class="footer">Recomeço • Seus registros ficam salvos na sua conta, ligados ao seu CPF, e acompanham você em qualquer dispositivo. Se compartilhar o aparelho, proteja sua privacidade.<br><button type="button" class="reset-link" id="installLink" onclick="rcInstalar()" hidden>📲 Instalar aplicativo</button> <button type="button" class="reset-link" onclick="resetAllData()">Apagar meus dados</button></div>
+<div class="footer">Recomeço • Seus registros ficam salvos na sua conta, ligados ao seu CPF, e acompanham você em qualquer dispositivo. Se compartilhar o aparelho, proteja sua privacidade.<br><button type="button" class="reset-link" id="installLink" onclick="rcInstalar()" hidden>📲 Instalar aplicativo</button> <button type="button" class="reset-link" onclick="resetAllData()">Apagar meus dados</button> <button type="button" class="reset-link" id="sairLink" onclick="sairDaConta()">🚪 Sair da conta</button></div>
 </div>
 
 <div class="setup-overlay" id="setupOverlay"><div class="setup-card">
@@ -650,6 +664,17 @@ function showConfirm(message,action,title='Tem certeza?'){
 function resolveConfirm(accepted){
  $('confirmModal').classList.remove('show');const action=confirmAction;confirmAction=null;
  if(accepted&&typeof action==='function')action();
+}
+function sairDaConta(){
+  if(!confirm('Sair da conta neste aparelho?\n\nSeus dados continuam salvos no seu CPF. Para voltar, é só entrar com o CPF.'))return;
+  var b=document.getElementById('sairLink');if(b){b.disabled=true;b.textContent='Saindo…'}
+  var ir=function(){location.replace('/recomeco.html?saiu=1')};
+  if(typeof window.rcSair==='function'){
+    window.rcSair().then(ir).catch(function(){if(b){b.disabled=false;b.textContent='🚪 Sair da conta'}alert('Não foi possível sair agora. Verifique a conexão e tente de novo.')});
+  }else{
+    var idv='';try{idv=localStorage.getItem('rc_device_id')||''}catch(e){}
+    fetch('/api/sair',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({deviceId:idv})}).then(ir).catch(ir);
+  }
 }
 function resetAllData(){
  showConfirm('Isso apaga permanentemente o contador, as conquistas, o progresso dos jogos, o diário, as metas e a contagem de reinícios — em TODOS os seus dispositivos e em todos os CPFs ligados ao seu perfil. Não dá para desfazer, e você voltará à tela inicial. Deseja mesmo apagar tudo?',

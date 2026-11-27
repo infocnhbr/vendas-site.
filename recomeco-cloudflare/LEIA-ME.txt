@@ -8,6 +8,8 @@ ESTRUTURA
   (o recomeco.html só é entregue pelo Worker a quem tem sessão válida)
 - public/manifest.webmanifest, public/sw.js e public/icons/   (instalação como aplicativo)
 
+NOVO: botão "Sair da conta" no rodapé do app. Encerra a sessão, esquece o aparelho e volta para a tela "Entrar com CPF" (que não cria conta).
+
 PASSOS
 1. Apague do repositório os arquivos antigos (server.js etc.) e coloque estes, mantendo as pastas.
 2. Confira o "name" em wrangler.jsonc.
